@@ -1,0 +1,23 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "esesha",
+  "outputfilename": "esesha",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Dee",
+    "email": "58201466+teddytkz@users.noreply.github.com"
+  },
+  "info": {
+    "companyName": "Esesha",
+    "productName": "Esesha SSH Manager",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright © 2026 Esesha",
+    "comments": "SSH & SFTP Desktop Manager"
+  },
+  "build": {
+    "ldflags": "-s -w"
+  }
+}

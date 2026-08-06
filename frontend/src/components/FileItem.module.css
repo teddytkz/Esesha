@@ -1,0 +1,54 @@
+.fileItem {
+  display: grid;
+  grid-template-columns: 32px 1fr 90px 110px 170px;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.fileItem:hover {
+  background: var(--bg-hover);
+  box-shadow: inset 3px 0 0 var(--accent-primary);
+}
+
+.fileItem:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+.fileItem.directory {
+  font-weight: var(--font-weight-medium);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.name {
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.size,
+.perms,
+.modified {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.size {
+  text-align: right;
+  padding-right: 4px;
+}
+
