@@ -44,11 +44,6 @@
   }
 }
 
-.accent {
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.5), rgba(139, 92, 246, 0.5), transparent);
-}
-
 .header {
   padding: 18px 20px;
   border-bottom: 1px solid var(--border-default);
@@ -61,8 +56,8 @@
   width: 36px;
   height: 36px;
   border-radius: var(--radius-md);
-  background: rgba(34, 211, 238, 0.1);
-  border: 1px solid rgba(34, 211, 238, 0.3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -148,7 +143,7 @@
 .formGroup input:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: var(--glow-cyan);
+  box-shadow: var(--shadow-focus);
 }
 
 .footer {
@@ -174,7 +169,7 @@
 .btnCancel:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
-  border-color: #2e3a5e;
+  border-color: var(--accent-primary);
 }
 
 .btnCancel:focus-visible {
@@ -185,25 +180,25 @@
 .btnSubmit {
   padding: 8px 16px;
   background: var(--accent-primary);
-  color: #04121a;
+  color: #ffffff;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  transition: background var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-fast);
+  font-weight: var(--font-weight-medium);
+  transition: background var(--transition-normal);
 }
 
 .btnSubmit:hover {
   background: var(--accent-hover);
-  box-shadow: var(--glow-cyan);
 }
 
 .btnSubmit:active {
-  transform: translateY(1px);
+  background: var(--accent-active);
 }
 
 .btnSubmit:focus-visible {
   outline: 2px solid var(--border-focus);
   outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
 }

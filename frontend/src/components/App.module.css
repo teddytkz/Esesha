@@ -16,7 +16,7 @@
   height: 100%;
 }
 
-/* ═══ Sidebar with scanline texture ═══ */
+/* ═══ Sidebar ═══ */
 .sidebar {
   position: relative;
   width: 300px;
@@ -24,24 +24,6 @@
   border-right: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
-}
-
-.sidebar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(rgba(34, 211, 238, 0.025) 1px, transparent 1px),
-    repeating-linear-gradient(
-      0deg,
-      transparent 0px,
-      transparent 3px,
-      rgba(34, 211, 238, 0.015) 3px,
-      rgba(34, 211, 238, 0.015) 4px
-    );
-  background-size: 100% 28px, 100% 100%;
-  opacity: 0.7;
 }
 
 .header {
@@ -66,10 +48,7 @@
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
-  background: linear-gradient(90deg, #22d3ee 0%, #8b5cf6 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--text-primary);
 }
 
 .brandSub {
@@ -88,13 +67,13 @@
 .btnAdd {
   padding: 7px 12px;
   background: var(--accent-primary);
-  color: #04121a;
+  color: #ffffff;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  transition: background var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-fast);
+  font-weight: var(--font-weight-medium);
+  transition: background var(--transition-normal), transform var(--transition-fast);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -129,7 +108,7 @@
   cursor: pointer;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  transition: background var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-fast);
+  transition: background var(--transition-normal), border-color var(--transition-normal);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -137,17 +116,17 @@
 
 .btnRefresh:hover:not(:disabled) {
   background: var(--bg-hover);
-  border-color: #2e3a5e;
-  box-shadow: var(--shadow-md);
+  border-color: var(--accent-primary);
 }
 
 .btnRefresh:active:not(:disabled) {
-  transform: translateY(1px);
+  background: var(--bg-active);
 }
 
 .btnRefresh:focus-visible {
   outline: 2px solid var(--border-focus);
   outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
 }
 
 .btnRefresh:disabled {
@@ -174,15 +153,14 @@
 
 .connectionItem {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px;
   margin-bottom: 8px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   cursor: pointer;
   text-align: left;
-  transition: transform var(--transition-slow) var(--ease-spring), border-color var(--transition-normal), background var(--transition-normal), box-shadow var(--transition-normal);
-  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-normal), background var(--transition-normal);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -190,26 +168,23 @@
 
 .connectionItem:hover:not(:disabled) {
   background: var(--bg-hover);
-  border-color: #2e3a5e;
-  transform: translateY(-1px);
+  border-color: var(--accent-primary);
 }
 
 .connectionItem:focus-visible {
   outline: 2px solid var(--border-focus);
   outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
 }
 
 .connectionItem:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 .connectionItem.active {
   background: var(--bg-active);
   border-color: var(--accent-primary);
-  border-left: 3px solid var(--accent-primary);
-  box-shadow: var(--glow-cyan);
 }
 
 .statusDot {
@@ -218,7 +193,6 @@
   height: 8px;
   border-radius: 50%;
   background: var(--text-tertiary);
-  box-shadow: 0 0 6px currentColor;
 }
 
 .connText {
@@ -321,51 +295,39 @@
   background: var(--bg-primary);
 }
 
-/* ═══ Signature animated status bar ═══ */
+/* ═══ Status bar ═══ */
 .statusBar {
   height: var(--status-bar-height);
   flex-shrink: 0;
-  transition: background var(--transition-glow), box-shadow var(--transition-glow);
+  transition: background var(--transition-normal);
 }
 
 .statusIdle {
-  background: #232c45;
+  background: var(--border-default);
 }
 
 .statusConnected {
-  background: var(--accent-primary);
-  box-shadow: var(--glow-cyan-strong);
+  background: var(--color-success);
 }
 
 .statusError {
   background: var(--color-danger);
-  box-shadow: var(--glow-danger);
 }
 
 .statusConnecting {
-  background: linear-gradient(
-    90deg,
-    #232c45 0%,
-    #22d3ee 25%,
-    #8b5cf6 50%,
-    #22d3ee 75%,
-    #232c45 100%
-  );
-  background-size: 300% 100%;
-  animation: status-pulse 1.8s linear infinite;
-  box-shadow: var(--glow-cyan);
+  background: var(--accent-primary);
+  animation: pulse 2s ease-in-out infinite;
 }
 
-@keyframes status-pulse {
-  0%   { background-position: 0% 0; }
-  100% { background-position: 300% 0; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .statusConnecting {
     animation: none;
-    background: linear-gradient(90deg, #22d3ee, #8b5cf6);
-    background-size: 100% 100%;
+    opacity: 0.8;
   }
 }
 
@@ -466,12 +428,6 @@
   flex-direction: column;
   overflow: hidden;
   border-radius: var(--radius-lg);
-  transition: border-color var(--transition-glow), box-shadow var(--transition-glow);
-}
-
-.terminalWrapperActive {
-  border: 1px solid rgba(34, 211, 238, 0.4);
-  box-shadow: var(--glow-cyan);
 }
 
 /* ═══ Awaiting connection placeholder ═══ */
@@ -486,7 +442,6 @@
 
 .placeholder svg {
   color: var(--text-tertiary);
-  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.3));
   margin-bottom: 8px;
 }
 
@@ -529,11 +484,6 @@
   width: 500px;
   max-width: 90vw;
   overflow: hidden;
-}
-
-.modalAccent {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.4), rgba(139, 92, 246, 0.4), transparent);
 }
 
 .modalHeader {
@@ -610,8 +560,8 @@
 }
 
 .formGroup input:focus {
-  border-color: var(--border-focus);
-  box-shadow: var(--glow-cyan);
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-focus);
 }
 
 .formRow {
@@ -707,7 +657,7 @@
 
 .btnCancel:hover {
   background: var(--bg-hover);
-  border-color: #2e3a5e;
+  border-color: var(--accent-primary);
 }
 
 .btnCancel:focus-visible {
@@ -718,23 +668,23 @@
 .btnSave {
   padding: 8px 16px;
   background: var(--accent-primary);
-  color: #04121a;
-  font-weight: var(--font-weight-semibold);
+  color: #ffffff;
+  font-weight: var(--font-weight-medium);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--font-size-sm);
-  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  transition: background var(--transition-fast);
 }
 
 .btnSave:hover {
   background: var(--accent-hover);
-  box-shadow: var(--glow-cyan);
 }
 
 .btnSave:focus-visible {
   outline: 2px solid var(--border-focus);
   outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
 }
 
 /* ═══ File input with browse button ═══ */
@@ -763,7 +713,7 @@
 
 .btnBrowse:hover {
   background: var(--bg-hover);
-  border-color: #2e3a5e;
+  border-color: var(--accent-primary);
 }
 
 .btnBrowse:focus-visible {
@@ -797,7 +747,7 @@
 
 .sessionTab:hover {
   background: var(--bg-hover);
-  border-color: rgba(34, 211, 238, 0.3);
+  border-color: var(--accent-primary);
 }
 
 .sessionTabActive {
@@ -866,6 +816,7 @@
 .viewTabs {
   display: flex;
   gap: 4px;
-  padding: 8px 15px 0 15px;
+  padding: 12px 15px 8px 15px;
   border-bottom: 1px solid var(--border-default);
+  background: var(--bg-secondary);
 }

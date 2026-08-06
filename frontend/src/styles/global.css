@@ -33,35 +33,33 @@
     --line-height-normal: 1.5;
     --line-height-relaxed: 1.6;
 
-    /* ═══ Colors — Mission Control palette ═══ */
-    --bg-primary: #0a0e1a;        /* app background — deep space navy */
-    --bg-secondary: #0f1524;      /* sidebar, toolbars */
-    --bg-tertiary: #161e33;       /* cards, list items, inputs */
-    --bg-hover: #1b2440;          /* hover surfaces */
-    --bg-active: #0e2a3a;         /* active connection / tab */
-    --bg-overlay: rgba(4, 8, 20, 0.72);  /* modal/dialog scrim */
-    --bg-scanline: rgba(34, 211, 238, 0.02);  /* scanline accent tint */
+    /* ═══ Colors — Professional Monochrome palette ═══ */
+    --bg-primary: #0f172a;        /* app background — slate 900 */
+    --bg-secondary: #1e293b;      /* sidebar, toolbars — slate 800 */
+    --bg-tertiary: #334155;       /* cards, list items, inputs — slate 700 */
+    --bg-hover: #475569;          /* hover surfaces — slate 600 */
+    --bg-active: #1e40af;         /* active connection / tab — blue 700 */
+    --bg-overlay: rgba(15, 23, 42, 0.85);  /* modal/dialog scrim */
 
-    --border-default: #232c45;    /* default borders */
-    --border-subtle: #1a2238;     /* very quiet dividers */
-    --border-focus: #22d3ee;      /* focus rings */
+    --border-default: #334155;    /* default borders — slate 700 */
+    --border-subtle: #1e293b;     /* very quiet dividers — slate 800 */
+    --border-focus: #3b82f6;      /* focus rings — blue 500 */
 
-    --text-primary: #e2e8f0;
-    --text-secondary: #94a3b8;
-    --text-tertiary: #64748b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
 
-    --accent-primary: #22d3ee;    /* cyan — primary actions, active states */
-    --accent-hover: #67e8f9;      /* cyan hover */
-    --accent-active: #0ea5b7;     /* cyan pressed */
-    --accent-secondary: #8b5cf6;  /* violet — secondary accents, brand */
-    --accent-secondary-hover: #a78bfa;
+    --accent-primary: #3b82f6;    /* blue 500 — primary actions */
+    --accent-hover: #60a5fa;      /* blue 400 hover */
+    --accent-active: #2563eb;     /* blue 600 pressed */
+    --accent-muted: #1e40af;      /* blue 700 — subtle accents */
 
-    --color-success: #34d399;
-    --color-warning: #fbbf24;
-    --color-danger: #f87171;
-    --color-danger-hover: #ef4444;
-    --color-danger-bg: #3b1d24;   /* danger surface */
-    --color-danger-border: #5c2b38;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    --color-danger-hover: #dc2626;
+    --color-danger-bg: #450a0a;   /* danger surface */
+    --color-danger-border: #7f1d1d;
 
     /* ═══ Radii ═══ */
     --radius-xs: 4px;
@@ -70,13 +68,10 @@
     --radius-lg: 12px;            /* modals, dialogs */
 
     /* ═══ Shadows ═══ */
-    --shadow-sm: 0 1px 3px rgba(2, 6, 18, 0.5);
-    --shadow-md: 0 4px 12px rgba(2, 6, 18, 0.55);
-    --shadow-lg: 0 12px 32px rgba(2, 6, 18, 0.6);
-    --glow-cyan: 0 0 12px rgba(34, 211, 238, 0.35);
-    --glow-cyan-strong: 0 0 20px rgba(34, 211, 238, 0.5);
-    --glow-violet: 0 0 12px rgba(139, 92, 246, 0.35);
-    --glow-danger: 0 0 12px rgba(248, 113, 113, 0.4);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 20px 25px rgba(0, 0, 0, 0.15);
+    --shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.1);
 
     /* ═══ Transitions & Motion ═══ */
     --transition-fast: 100ms ease-in-out;
@@ -96,9 +91,12 @@ html, body {
 }
 
 body {
-    background-color: #0a0e1a;
-    color: #e2e8f0;
+    background-color: #0f172a;
+    color: #f1f5f9;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 #app {
@@ -110,6 +108,7 @@ body {
     font-family: "Nunito";
     font-style: normal;
     font-weight: 400;
+    font-display: swap;
     src: local(""),
     url("../assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
 }

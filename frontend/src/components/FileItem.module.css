@@ -5,12 +5,13 @@
   align-items: center;
   padding: 7px 12px;
   cursor: pointer;
-  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  transition: background var(--transition-fast);
+  border-left: 2px solid transparent;
 }
 
 .fileItem:hover {
   background: var(--bg-hover);
-  box-shadow: inset 3px 0 0 var(--accent-primary);
+  border-left-color: var(--accent-primary);
 }
 
 .fileItem:focus-visible {
