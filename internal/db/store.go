@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/json"
+	"esesha/internal/crypto"
 	"esesha/internal/models"
 	"fmt"
 	"log"
@@ -29,6 +30,24 @@ type HostKey struct {
 type jsonData struct {
 	Connections []*models.Connection `json:"connections"`
 	HostKeys    []HostKey            `json:"host_keys"`
+}
+
+// exportConnection represents connection with plain text password for backup
+type exportConnection struct {
+	ID             int    `json:"id"`
+	Name           string `json:"name"`
+	Host           string `json:"host"`
+	Port           int    `json:"port"`
+	Username       string `json:"username"`
+	Password       string `json:"password"`
+	PrivateKeyPath string `json:"privateKeyPath"`
+	CreatedAt      int64  `json:"createdAt"`
+	UpdatedAt      int64  `json:"updatedAt"`
+}
+
+type exportData struct {
+	Connections []*exportConnection `json:"connections"`
+	HostKeys    []HostKey           `json:"host_keys"`
 }
 
 // legacyConnection represents old format with time.Time timestamps
@@ -203,12 +222,39 @@ func (s *Store) ExportJSON(path string) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	jd := jsonData{
-		Connections: s.connections,
+	// Decrypt passwords for export
+	exportConns := make([]*exportConnection, 0, len(s.connections))
+	for _, conn := range s.connections {
+		ec := &exportConnection{
+			ID:             conn.ID,
+			Name:           conn.Name,
+			Host:           conn.Host,
+			Port:           conn.Port,
+			Username:       conn.Username,
+			PrivateKeyPath: conn.PrivateKeyPath,
+			CreatedAt:      conn.CreatedAt,
+			UpdatedAt:      conn.UpdatedAt,
+		}
+
+		// Decrypt password if exists
+		if len(conn.EncryptedPassword) > 0 {
+			decrypted, err := crypto.Decrypt(conn.EncryptedPassword)
+			if err != nil {
+				log.Printf("Warning: failed to decrypt password for connection %s: %v", conn.Name, err)
+			} else {
+				ec.Password = string(decrypted)
+			}
+		}
+
+		exportConns = append(exportConns, ec)
+	}
+
+	ed := exportData{
+		Connections: exportConns,
 		HostKeys:    s.hostKeys,
 	}
 
-	data, err := json.MarshalIndent(jd, "", "  ")
+	data, err := json.MarshalIndent(ed, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
@@ -224,6 +270,117 @@ func (s *Store) ExportJSON(path string) error {
 	}
 
 	return nil
+}
+
+// ImportJSON imports connections and host keys from a JSON file at the specified path
+func (s *Store) ImportJSON(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Try to parse as export format (with plain text passwords)
+	var ed exportData
+	if err := json.Unmarshal(data, &ed); err == nil && len(ed.Connections) > 0 {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+
+		// Import connections with password encryption
+		for _, ec := range ed.Connections {
+			now := time.Now()
+			conn := &models.Connection{
+				ID:             s.nextID,
+				Name:           ec.Name,
+				Host:           ec.Host,
+				Port:           ec.Port,
+				Username:       ec.Username,
+				PrivateKeyPath: ec.PrivateKeyPath,
+				CreatedAt:      now.Unix(),
+				UpdatedAt:      now.Unix(),
+			}
+
+			// Encrypt password if exists
+			if ec.Password != "" {
+				encrypted, err := crypto.Encrypt([]byte(ec.Password))
+				if err != nil {
+					log.Printf("Warning: failed to encrypt password for connection %s: %v", ec.Name, err)
+				} else {
+					conn.EncryptedPassword = encrypted
+				}
+			}
+
+			s.nextID++
+			s.connections = append(s.connections, conn)
+		}
+
+		// Import host keys
+		for _, hk := range ed.HostKeys {
+			found := false
+			for i, existingHk := range s.hostKeys {
+				if existingHk.Hostname == hk.Hostname {
+					s.hostKeys[i].Fingerprint = hk.Fingerprint
+					s.hostKeys[i].UpdatedAt = time.Now()
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				hk.UpdatedAt = time.Now()
+				s.hostKeys = append(s.hostKeys, hk)
+			}
+		}
+
+		return s.save()
+	}
+
+	// Fallback: try old format with encrypted passwords
+	var jd jsonData
+	if err := json.Unmarshal(data, &jd); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON: %w", err)
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Import connections with existing encrypted passwords
+	for _, conn := range jd.Connections {
+		now := time.Now()
+		newConn := &models.Connection{
+			ID:                s.nextID,
+			Name:              conn.Name,
+			Host:              conn.Host,
+			Port:              conn.Port,
+			Username:          conn.Username,
+			EncryptedPassword: conn.EncryptedPassword,
+			PrivateKeyPath:    conn.PrivateKeyPath,
+			CreatedAt:         now.Unix(),
+			UpdatedAt:         now.Unix(),
+		}
+		s.nextID++
+		s.connections = append(s.connections, newConn)
+	}
+
+	// Import host keys
+	for _, hk := range jd.HostKeys {
+		// Check if hostname already exists
+		found := false
+		for i, existingHk := range s.hostKeys {
+			if existingHk.Hostname == hk.Hostname {
+				s.hostKeys[i].Fingerprint = hk.Fingerprint
+				s.hostKeys[i].UpdatedAt = time.Now()
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			hk.UpdatedAt = time.Now()
+			s.hostKeys = append(s.hostKeys, hk)
+		}
+	}
+
+	return s.save()
 }
 
 // GetHostKey retrieves stored host key fingerprint

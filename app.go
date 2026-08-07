@@ -154,6 +154,25 @@ func (a *App) CreateConnection(name, host string, port int, username, password, 
 	return conn.ID, nil
 }
 
+// ImportConnectionFromBackup imports a connection with an existing encrypted password
+// (used when restoring backups that contain encrypted_password field)
+func (a *App) ImportConnectionFromBackup(name, host string, port int, username, privateKeyPath string, encryptedPassword []byte) (int, error) {
+	conn := &models.Connection{
+		Name:              name,
+		Host:              host,
+		Port:              port,
+		Username:          username,
+		EncryptedPassword: encryptedPassword,
+		PrivateKeyPath:    privateKeyPath,
+	}
+
+	if err := a.store.CreateConnection(conn); err != nil {
+		return 0, err
+	}
+
+	return conn.ID, nil
+}
+
 // GetConnection retrieves a connection by ID
 func (a *App) GetConnection(id int) (*models.Connection, error) {
 	return a.store.GetConnection(id)
@@ -520,21 +539,22 @@ func (a *App) BuildMenu() *menu.Menu {
 			})
 		}
 	})
-	fileMenu.AddText("Backup Connections...", keys.CmdOrCtrl("b"), func(_ *menu.CallbackData) {
+
+	// Connection submenu
+	connectionMenu := fileMenu.AddSubmenu("Connection")
+	connectionMenu.AddText("Backup", keys.CmdOrCtrl("b"), func(_ *menu.CallbackData) {
 		if err := a.BackupConnections(); err != nil {
 			runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 				Type:    runtime.ErrorDialog,
 				Title:   "Backup Failed",
 				Message: fmt.Sprintf("Failed to backup connections: %v", err),
 			})
-		} else {
-			runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-				Type:    runtime.InfoDialog,
-				Title:   "Backup Successful",
-				Message: "Connections backed up successfully.",
-			})
 		}
 	})
+	connectionMenu.AddText("Restore", keys.CmdOrCtrl("r"), func(_ *menu.CallbackData) {
+		runtime.EventsEmit(a.ctx, "menu:restore")
+	})
+
 	fileMenu.AddSeparator()
 	fileMenu.AddText("Exit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
 		runtime.Quit(a.ctx)
@@ -553,12 +573,43 @@ func (a *App) BuildMenu() *menu.Menu {
 	return appMenu
 }
 
-// BackupConnections exports connections to a user-selected JSON file
+// BackupConnections exports connections to backup folder
 func (a *App) BackupConnections() error {
-	defaultFilename := fmt.Sprintf("esesha-backup-%s.json", time.Now().Format("20060102-150405"))
-	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		Title:           "Backup Connections",
-		DefaultFilename: defaultFilename,
+	// Get executable directory
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("get executable path: %w", err)
+	}
+	exeDir := filepath.Dir(exePath)
+
+	// Create backup directory if not exists
+	backupDir := filepath.Join(exeDir, "backup")
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		return fmt.Errorf("create backup directory: %w", err)
+	}
+
+	// Generate filename with timestamp
+	filename := fmt.Sprintf("esesha-backup-%s.json", time.Now().Format("20060102-150405"))
+	filePath := filepath.Join(backupDir, filename)
+
+	if err := a.store.ExportJSON(filePath); err != nil {
+		return err
+	}
+
+	// Show success message
+	runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		Type:    runtime.InfoDialog,
+		Title:   "Backup Successful",
+		Message: fmt.Sprintf("Connections backed up to:\n%s", filePath),
+	})
+
+	return nil
+}
+
+// RestoreConnections imports connections from a user-selected JSON file
+func (a *App) RestoreConnections() error {
+	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Restore Connections",
 		Filters: []runtime.FileFilter{
 			{DisplayName: "JSON Files (*.json)", Pattern: "*.json"},
 			{DisplayName: "All Files (*.*)", Pattern: "*.*"},
@@ -571,7 +622,7 @@ func (a *App) BackupConnections() error {
 		return nil // User cancelled, not an error
 	}
 
-	return a.store.ExportJSON(filePath)
+	return a.store.ImportJSON(filePath)
 }
 
 // CreateDesktopShortcut creates a Windows .lnk shortcut on the desktop

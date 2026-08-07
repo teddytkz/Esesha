@@ -40,6 +40,8 @@ export function GetConnection(arg1:number):Promise<models.Connection>;
 
 export function GetDecryptedPassword(arg1:number):Promise<string>;
 
+export function ImportConnectionFromBackup(arg1:string,arg2:string,arg3:number,arg4:string,arg5:string,arg6:Array<number>):Promise<number>;
+
 export function ListConnections():Promise<Array<models.Connection>>;
 
 export function ListDirectory(arg1:string,arg2:string):Promise<Array<sftp.FileInfo>>;
@@ -47,6 +49,8 @@ export function ListDirectory(arg1:string,arg2:string):Promise<Array<sftp.FileIn
 export function RenamePath(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function ResizeTerminal(arg1:string,arg2:number,arg3:number):Promise<void>;
+
+export function RestoreConnections():Promise<void>;
 
 export function SelectPrivateKeyFile():Promise<string>;
 

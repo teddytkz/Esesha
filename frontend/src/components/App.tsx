@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Plus, RefreshCw, Server, ServerOff, X, CheckCircle2, FolderOpen, MoreVertical, Edit, Trash2 } from 'lucide-react';
-import { ListConnections, CreateConnection, SelectPrivateKeyFile, UpdateConnection, DeleteConnection } from '@wailsjs/go/main/App';
+import { Plus, RefreshCw, Server, ServerOff, X, CheckCircle2, FolderOpen, MoreVertical, Edit, Trash2, Upload } from 'lucide-react';
+import { ListConnections, CreateConnection, SelectPrivateKeyFile, UpdateConnection, DeleteConnection, ImportConnectionFromBackup } from '@wailsjs/go/main/App';
 import { models } from '@wailsjs/go/models';
+import { EventsOn, EventsOff } from '@wailsjs/runtime/runtime';
 import Terminal from './Terminal';
 import FileExplorer from './FileExplorer';
 import PassphraseDialog from './PassphraseDialog';
@@ -58,12 +59,24 @@ const App: React.FC = () => {
   const [editAuthType, setEditAuthType] = useState<'password' | 'key'>('password');
   const [editFormError, setEditFormError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<models.Connection | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importError, setImportError] = useState('');
+  const [importSuccess, setImportSuccess] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const terminalRefs = useRef<Map<string, { disconnect: () => void; clear: () => void }>>(new Map());
   const openMenuIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     loadConnections();
+
+    // Listen for menu events from native Wails menu
+    EventsOn('menu:restore', handleMenuRestore);
+
+    return () => {
+      EventsOff('menu:restore');
+    };
   }, []);
 
   useEffect(() => {
@@ -225,6 +238,135 @@ const App: React.FC = () => {
     setDeleteConfirm(null);
   };
 
+  const handleMenuRestore = () => {
+    setShowImportModal(true);
+    setImportFile(null);
+    setImportError('');
+    setImportSuccess('');
+  };
+
+  const closeImportModal = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportError('');
+    setImportSuccess('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith('.json')) {
+        setImportError('Please select a JSON file');
+        setImportFile(null);
+        return;
+      }
+      setImportFile(file);
+      setImportError('');
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) {
+      setImportError('Please select a file');
+      return;
+    }
+
+    setImportError('');
+    setImportSuccess('');
+
+    try {
+      const text = await importFile.text();
+      const data = JSON.parse(text);
+
+      let connections: any[] = [];
+      
+      if (Array.isArray(data)) {
+        connections = data;
+      } else if (data && typeof data === 'object') {
+        if (Array.isArray(data.connections)) {
+          connections = data.connections;
+        } else if (Array.isArray(data.data)) {
+          connections = data.data;
+        } else {
+          const arrayProps = Object.values(data).filter(v => Array.isArray(v));
+          if (arrayProps.length > 0) {
+            connections = arrayProps[0] as any[];
+          } else {
+            setImportError('Invalid file format: no connections array found');
+            return;
+          }
+        }
+      } else {
+        setImportError('Invalid file format: expected JSON array or object');
+        return;
+      }
+
+      if (connections.length === 0) {
+        setImportError('No connections found in file');
+        return;
+      }
+
+      let imported = 0;
+      let failed = 0;
+
+      for (const conn of connections) {
+        try {
+          if (!conn.name || !conn.host || !conn.username) {
+            console.warn('Skipping connection with missing required fields:', conn);
+            failed++;
+            continue;
+          }
+
+          const port = conn.port || 22;
+          const privateKeyPath = conn.privateKeyPath || '';
+
+          // Check if backup contains encrypted password (old format)
+          if (conn.encrypted_password) {
+            // Convert base64 string to number array for the Go binding
+            let encryptedBytes: number[];
+            if (typeof conn.encrypted_password === 'string') {
+              const binary = atob(conn.encrypted_password);
+              encryptedBytes = new Array(binary.length);
+              for (let i = 0; i < binary.length; i++) {
+                encryptedBytes[i] = binary.charCodeAt(i);
+              }
+            } else {
+              encryptedBytes = Array.from(conn.encrypted_password as Uint8Array);
+            }
+            await ImportConnectionFromBackup(conn.name, conn.host, port, conn.username, privateKeyPath, encryptedBytes);
+          } else {
+            // New format: plain text password, encrypt on server side
+            const password = conn.password || '';
+            await CreateConnection(conn.name, conn.host, port, conn.username, password, privateKeyPath);
+          }
+          imported++;
+        } catch (err) {
+          console.error(`Failed to import ${conn.name}:`, err);
+          failed++;
+        }
+      }
+
+      if (imported > 0) {
+        setImportSuccess(`Successfully imported ${imported} connection(s)${failed > 0 ? `, ${failed} failed` : ''}`);
+        await loadConnections();
+        setTimeout(() => {
+          closeImportModal();
+        }, 1500);
+      } else {
+        setImportError(`Failed to import all connections. ${failed} failed.`);
+      }
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        setImportError('Invalid JSON file format');
+      } else {
+        setImportError(`Error reading file: ${err}`);
+      }
+    }
+  };
+
   const handleConnect = useCallback((sid: string, connectionId: number) => {
     setSessions(prev => prev.map(session => 
       session.connection.id === connectionId && !session.sessionId
@@ -362,12 +504,10 @@ const App: React.FC = () => {
             </div>
             <div className={styles.headerButtons}>
               <button type="button" className={styles.btnAdd} onClick={openAddForm} aria-label="Add connection">
-                <Plus size={16} aria-hidden="true" />
-                Add
+                <Plus size={18} aria-hidden="true" />
               </button>
               <button type="button" className={styles.btnRefresh} onClick={loadConnections} disabled={loading} aria-label="Refresh connections">
-                <RefreshCw size={16} className={loading ? styles.spin : undefined} aria-hidden="true" />
-                {loading ? 'Loading...' : 'Refresh'}
+                <RefreshCw size={18} className={loading ? styles.spin : undefined} aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -839,6 +979,64 @@ const App: React.FC = () => {
               <button type="button" className={styles.deleteBtnConfirm} onClick={confirmDelete}>
                 <Trash2 size={16} />
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImportModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: '450px' }}>
+            <div className={styles.modalHeader}>
+              <h3>Restore Connections</h3>
+              <button 
+                type="button" 
+                className={styles.btnCloseModal} 
+                onClick={closeImportModal}
+                aria-label="Close dialog"
+              >
+                <X size={20} aria-hidden="true" />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+                Select a JSON backup file to restore connections.
+              </p>
+              <div className={styles.importFileArea}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileSelect}
+                  className={styles.importFileInput}
+                  id="import-file-input"
+                />
+                <label htmlFor="import-file-input" className={styles.importFileLabel}>
+                  <Upload size={24} />
+                  <span className={styles.importFileLabelText}>
+                    {importFile ? importFile.name : 'Choose a JSON file'}
+                  </span>
+                  <span className={styles.importFileLabelHint}>
+                    Click to browse
+                  </span>
+                </label>
+              </div>
+              {importError && (
+                <div className={`${styles.formMessage} ${styles.error}`} role="alert">{importError}</div>
+              )}
+              {importSuccess && (
+                <div className={`${styles.formMessage} ${styles.success}`} role="status">
+                  <CheckCircle2 size={14} aria-hidden="true" />
+                  {importSuccess}
+                </div>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              <button type="button" className={styles.btnCancel} onClick={closeImportModal}>Cancel</button>
+              <button type="button" className={styles.btnSave} onClick={handleImport} disabled={!importFile}>
+                <Upload size={16} />
+                Restore
               </button>
             </div>
           </div>
