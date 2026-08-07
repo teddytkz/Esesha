@@ -12,9 +12,18 @@ interface FileInfo {
 
 interface FileItemProps {
   item: FileInfo;
+  onClick?: (item: FileInfo) => void;
   onDoubleClick: (item: FileInfo) => void;
   onContextMenu: (event: React.MouseEvent, item: FileInfo) => void;
   onDelete: (item: FileInfo) => void;
+  isSelected?: boolean;
+  isDragging?: boolean;
+  isDragTarget?: boolean;
+  onFileDragStart?: (item: FileInfo) => void;
+  onFileDrop?: (targetFolder: FileInfo) => void;
+  onFileDragEnter?: (item: FileInfo) => void;
+  onFileDragLeave?: () => void;
+  onFileDragEnd?: () => void;
 }
 
 function formatSize(bytes: number): string {
@@ -46,7 +55,12 @@ function formatPerms(mode: number): string {
   return perms.join('');
 }
 
-const FileItem: React.FC<FileItemProps> = ({ item, onDoubleClick, onContextMenu, onDelete }) => {
+const FileItem: React.FC<FileItemProps> = ({ item, onClick, onDoubleClick, onContextMenu, onDelete, isSelected, isDragging, isDragTarget, onFileDragStart, onFileDrop, onFileDragEnter, onFileDragLeave, onFileDragEnd }) => {
+  const handleClick = () => {
+    if (isDragging) return; // Don't navigate if dragging
+    onClick?.(item);
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -57,12 +71,54 @@ const FileItem: React.FC<FileItemProps> = ({ item, onDoubleClick, onContextMenu,
     }
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/x-esesha-file', JSON.stringify(item));
+    onFileDragStart?.(item);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!item.isDir) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (!item.isDir) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onFileDrop?.(item);
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (!item.isDir) return;
+    e.preventDefault();
+    onFileDragEnter?.(item);
+  };
+
+  const handleDragLeave = () => {
+    if (!item.isDir) return;
+    onFileDragLeave?.();
+  };
+
+  const handleDragEnd = () => {
+    onFileDragEnd?.();
+  };
+
   return (
     <div 
-      className={`${styles.fileItem} ${item.isDir ? styles.directory : ''}`}
+      className={`${styles.fileItem} ${item.isDir ? styles.directory : ''} ${isSelected ? styles.selected : ''} ${isDragging ? styles.dragging : ''} ${isDragTarget ? styles.dragTarget : ''}`}
+      onClick={handleClick}
       onDoubleClick={() => onDoubleClick(item)}
       onContextMenu={(e) => onContextMenu(e, item)}
       onKeyDown={handleKeyDown}
+      draggable={true}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragEnd={handleDragEnd}
       tabIndex={0}
       role="row"
       aria-label={`${item.name}${item.isDir ? ' (directory)' : ''}`}

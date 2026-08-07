@@ -1,15 +1,13 @@
 package sftp
 
-import "time"
-
 // FileInfo represents remote file metadata
 type FileInfo struct {
-	Name         string    `json:"name"`
-	Size         int64     `json:"size"`
-	Mode         uint32    `json:"mode"`
-	ModifiedTime time.Time `json:"modifiedTime"`
-	IsDir        bool      `json:"isDir"`
-	Path         string    `json:"path"`
+	Name         string `json:"name"`
+	Size         int64  `json:"size"`
+	Mode         uint32 `json:"mode"`
+	ModifiedTime int64  `json:"modifiedTime"`
+	IsDir        bool   `json:"isDir"`
+	Path         string `json:"path"`
 }
 
 // TransferProgress represents upload/download progress

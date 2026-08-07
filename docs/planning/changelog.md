@@ -7,7 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- [2026-08-07] Changed folder navigation from double-click to single-click in SFTP file manager (`frontend/src/components/FileExplorer.tsx`, `frontend/src/components/FileItem.tsx`)
+  - **User request (Indonesian):** "buat masuk ke folder di file manager" (single-click to enter folders)
+  - **Behavior:** Single-click folder → navigate into folder; single-click file → select/highlight only (no action); double-click file → edit file (unchanged)
+  - **Rationale:** Standard file manager UX pattern (Windows Explorer, macOS Finder)
+  - **Drag-drop compatibility:** Single-click does NOT trigger on drag operations
+
+### Added
+- [2026-08-07] **PRD-005: Drag-and-Drop File Move** — Add drag-and-drop for moving files/folders between directories in the SFTP file manager (In Progress - Bug Fixes)
+  - **User request (Indonesian):** "tambahin drag and drop ini juga, tapi ini untuk pindah ke folder lain masih double click" (add drag-and-drop for moving files; navigation remains double-click)
+  - **Scope:** Drag files/folders → drop on folder items (moves into folder) or empty space (moves to current directory); visual feedback (dragging opacity, drop target cyan highlight); distinguish local drag (OS files → upload, existing) from remote drag (app items → move, new); toast notifications; auto-refresh after move
+  - **Backend unchanged:** Uses existing `RenamePath(sessionId, oldPath, newPath)` — already supports cross-directory moves
+  - **Files to modify:** `frontend/src/components/FileItem.tsx` (draggable + drop handlers), `frontend/src/components/FileItem.module.css` (drag/drop styles), `frontend/src/components/FileExplorer.tsx` (state + remote drop logic), `frontend/src/components/FileExplorer.module.css` (background drop styling)
+  - **Constraints:** Pure CSS Modules; Mission Control design system (cyan accents); double-click navigation unchanged; single-item drag only (no multi-select); no drag-to-reorder within same folder
+  - **Status:** Initial implementation complete, 5 critical bugs found in review (Fix-015)
+  - **See:** `docs/planning/prd-005-drag-drop-file-move.md`, `docs/planning/fix-015-drag-drop-critical-bugs.md`
+
 ### Fixed
+- [2026-08-07] **Fix-016: Connection List Loading Failure Due to Timestamp Format Mismatch** — Critical data migration bug (Planned)
+  - **Severity:** Critical — app cannot load existing connections, frontend stuck in loading state
+  - **Root cause:** Changed `models.Connection` timestamps from `time.Time` to `int64` Unix format; existing `connections.json` has ISO string timestamps (`"2026-08-06T19:48:19.8529913+07:00"`); `json.Unmarshal` fails on type mismatch (string → int64)
+  - **Impact:** User's 2 saved connections (including production server `43.157.235.7:50171`) are inaccessible
+  - **Fix Strategy:** Automatic data migration in `internal/db/store.go:load()` — detect legacy format on unmarshal failure → convert `time.Time` → `int64` Unix timestamps → re-save in new format → create `.pre-migration` backup
+  - **Edge cases:** Null/zero/invalid timestamps fallback to current time; already-migrated files skip migration
+  - **Files to modify:** `internal/db/store.go` (add legacy format detection, conversion logic, backup creation)
+  - **Constraints:** No user intervention required (transparent one-time migration); preserve all connection data; backward compatible during migration read only
+  - **Acceptance:** Existing connections load successfully; timestamps converted to Unix int64; backup file created; no crashes on invalid formats
+  - **See:** `docs/planning/fix-016-timestamp-migration.md`
+
+- [2026-08-07] **Fix-015: Drag-Drop Critical Bugs (PRD-005)** — 5 critical bugs blocking drag-drop feature from working (Planned)
+  - **Severity:** Critical — feature completely non-functional without these fixes
+  - **Bugs identified:**
+    1. Missing `onDragEnter` handler — drop target highlight never activates
+    2. Missing `onDragLeave` handler — drop target highlight never clears (multiple folders stay highlighted)
+    3. Missing `onDragEnd` handler — dragged item stuck at 50% opacity after cancel/Escape
+    4. Drop on file (non-folder) triggers invalid move operation instead of no-op
+    5. Self-drop prevention compares names instead of full paths (fails with nested same-name folders)
+  - **Additional warnings (deferred):**
+    6. Background drop not implemented (design clarification needed)
+    7. No guard against moving folder into its own subdirectory (backend error instead of frontend prevention)
+  - **Fix Strategy:** Option A — Fix critical bugs (1-5) first; address warnings (6-7) after user clarification
+  - **Files to modify:** `frontend/src/components/FileItem.tsx` (add onDragEnter/Leave/End handlers), `frontend/src/components/FileExplorer.tsx` (add handler methods, fix validation logic)
+  - **Impact:** Drop target highlighting works, cancel/escape clears state, invalid drops prevented
+  - **Regression Risk:** Medium — new event handlers may affect existing drag behavior; thorough testing of nested folders required
+  - **See:** `docs/planning/fix-015-drag-drop-critical-bugs.md`
+
 - [2026-08-06] **Fix-014: Three user-requested improvements (Indonesian user feedback)** — data persistence on rebuild, standard tab buttons, full-bleed terminal layout
   - **User requests (as reported):** ① "connection.json jangan di hapus kalau rebuild ulang" (don't delete connection.json on rebuild) ② "button Terminal dan Files buat standart jangan ada biru dibawahnya" (standard tab buttons, no blue underline) ③ "layout terminal buat full" (full terminal layout)
   - **⚠️ Correction to initial analysis:** Connections are stored in **`connections.json` (JSON), NOT SQLite** — `internal/db/store.go:40` computes `filePath := filepath.Join(filepath.Dir(os.Executable()), "connections.json")` (repo memory note "SQLite / AppData\Roaming\esesha\connections.db" is **STALE** — the SQLite migration was reverted; storage is a JSON file with atomic tmp-file + rename writes, DPAPI-encrypted passwords)

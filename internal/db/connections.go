@@ -14,8 +14,8 @@ func (s *Store) CreateConnection(conn *models.Connection) error {
 
 	now := time.Now()
 	conn.ID = s.nextID
-	conn.CreatedAt = now
-	conn.UpdatedAt = now
+	conn.CreatedAt = now.Unix()
+	conn.UpdatedAt = now.Unix()
 	s.nextID++
 
 	s.connections = append(s.connections, conn)
@@ -58,7 +58,7 @@ func (s *Store) UpdateConnection(conn *models.Connection) error {
 	for i, c := range s.connections {
 		if c.ID == conn.ID {
 			now := time.Now()
-			conn.UpdatedAt = now
+			conn.UpdatedAt = now.Unix()
 			s.connections[i] = conn
 			return s.save()
 		}

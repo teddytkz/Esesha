@@ -106,10 +106,8 @@ export namespace models {
 	    username: string;
 	    encrypted_password: number[];
 	    privateKeyPath: string;
-	    // Go type: time
-	    createdAt: any;
-	    // Go type: time
-	    updatedAt: any;
+	    createdAt: number;
+	    updatedAt: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Connection(source);
@@ -124,27 +122,9 @@ export namespace models {
 	        this.username = source["username"];
 	        this.encrypted_password = source["encrypted_password"];
 	        this.privateKeyPath = source["privateKeyPath"];
-	        this.createdAt = this.convertValues(source["createdAt"], null);
-	        this.updatedAt = this.convertValues(source["updatedAt"], null);
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 
 }
@@ -155,8 +135,7 @@ export namespace sftp {
 	    name: string;
 	    size: number;
 	    mode: number;
-	    // Go type: time
-	    modifiedTime: any;
+	    modifiedTime: number;
 	    isDir: boolean;
 	    path: string;
 	
@@ -169,28 +148,10 @@ export namespace sftp {
 	        this.name = source["name"];
 	        this.size = source["size"];
 	        this.mode = source["mode"];
-	        this.modifiedTime = this.convertValues(source["modifiedTime"], null);
+	        this.modifiedTime = source["modifiedTime"];
 	        this.isDir = source["isDir"];
 	        this.path = source["path"];
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 
 }

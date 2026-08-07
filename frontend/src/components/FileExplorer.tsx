@@ -40,6 +40,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
   const [errorMsg, setErrorMsg] = useState('');
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [selectedItem, setSelectedItem] = useState<FileInfo | null>(null);
+  const [selectedFileItem, setSelectedFileItem] = useState<FileInfo | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadActive, setUploadActive] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -47,6 +48,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
   const [toast, setToast] = useState<Toast | null>(null);
   const [dialog, setDialog] = useState<DialogState>(null);
   const toastTimerRef = useRef<number | null>(null);
+  const [draggedItem, setDraggedItem] = useState<FileInfo | null>(null);
+  const [dragTargetItem, setDragTargetItem] = useState<FileInfo | null>(null);
 
   const pathParts = useMemo(() => 
     currentPath.split('/').filter(p => p), 
@@ -131,6 +134,20 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
       setErrorMsg(`Failed to load directory: ${err}`);
     }
     setLoading(false);
+  };
+
+  const handleItemClick = (item: FileInfo) => {
+    if (item.isDir) {
+      // Navigate immediately
+      const newPath = currentPath === '/' ? `/${item.name}` : `${currentPath}/${item.name}`;
+      setCurrentPath(newPath);
+      currentPathRef.current = newPath;
+      loadDirectory(newPath);
+      setSelectedFileItem(null);
+    } else {
+      // Select file only
+      setSelectedFileItem(item);
+    }
   };
 
   const handleDoubleClick = (item: FileInfo) => {
@@ -259,6 +276,19 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
   const handleDrop = async (event: React.DragEvent) => {
     event.preventDefault();
     setDragOver(false);
+    setDraggedItem(null);
+    setDragTargetItem(null);
+
+    // Check if this is a remote file move
+    if (event.dataTransfer.types.includes('application/x-esesha-file')) {
+      const data = event.dataTransfer.getData('application/x-esesha-file');
+      if (data && draggedItem) {
+        // Drop on empty space = move to current directory (no-op, already here)
+        return;
+      }
+    }
+
+    // Otherwise it's a local file upload
     const files = event.dataTransfer.files;
     if (!files || files.length === 0) return;
     await uploadFiles(Array.from(files));
@@ -303,6 +333,52 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
       console.error('[FileExplorer] navigateTo error:', err);
       setErrorMsg(`Navigation failed: ${err}`);
     }
+  };
+
+  const handleFileDragStart = (item: FileInfo) => {
+    setDraggedItem(item);
+  };
+
+  const handleFileDragEnter = (item: FileInfo) => {
+    setDragTargetItem(item);
+  };
+
+  const handleFileDragLeave = () => {
+    setDragTargetItem(null);
+  };
+
+  const handleFileDragEnd = () => {
+    setDraggedItem(null);
+    setDragTargetItem(null);
+  };
+
+  const handleFileDrop = async (targetFolder: FileInfo) => {
+    if (!draggedItem || !targetFolder.isDir) return;
+    
+    // Don't allow drop on self
+    const oldPath = currentPath === '/' ? `/${draggedItem.name}` : `${currentPath}/${draggedItem.name}`;
+    const targetPath = currentPath === '/' ? `/${targetFolder.name}` : `${currentPath}/${targetFolder.name}`;
+    
+    if (oldPath === targetPath) {
+      setDraggedItem(null);
+      setDragTargetItem(null);
+      return;
+    }
+
+    try {
+      const newPath = `${targetPath}/${draggedItem.name}`;
+
+      if (window.go?.main?.App?.RenamePath) {
+        await window.go.main.App.RenamePath(sessionId, oldPath, newPath);
+        showToast(`Moved ${draggedItem.name} to ${targetFolder.name}`, 'success');
+        loadDirectory(currentPath);
+      }
+    } catch (err) {
+      showToast(`Move failed: ${err}`, 'error');
+    }
+
+    setDraggedItem(null);
+    setDragTargetItem(null);
   };
 
   return (
@@ -390,10 +466,19 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
             {items.map((item) => (
               <FileItem 
                 key={`${item.name}-${item.modifiedTime}`}
-                item={item} 
+                item={item}
+                onClick={handleItemClick}
                 onDoubleClick={handleDoubleClick}
                 onContextMenu={handleContextMenu}
                 onDelete={deleteItem}
+                isSelected={item === selectedFileItem}
+                isDragging={item === draggedItem}
+                isDragTarget={item === dragTargetItem}
+                onFileDragStart={handleFileDragStart}
+                onFileDrop={handleFileDrop}
+                onFileDragEnter={handleFileDragEnter}
+                onFileDragLeave={handleFileDragLeave}
+                onFileDragEnd={handleFileDragEnd}
               />
             ))}
           </>

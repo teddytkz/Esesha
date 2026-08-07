@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"esesha/internal/models"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -27,6 +28,24 @@ type HostKey struct {
 type jsonData struct {
 	Connections []*models.Connection `json:"connections"`
 	HostKeys    []HostKey            `json:"host_keys"`
+}
+
+// legacyConnection represents old format with time.Time timestamps
+type legacyConnection struct {
+	ID                int       `json:"id"`
+	Name              string    `json:"name"`
+	Host              string    `json:"host"`
+	Port              int       `json:"port"`
+	Username          string    `json:"username"`
+	EncryptedPassword []byte    `json:"encrypted_password"`
+	PrivateKeyPath    string    `json:"privateKeyPath"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+}
+
+type legacyJsonData struct {
+	Connections []*legacyConnection `json:"connections"`
+	HostKeys    []HostKey           `json:"host_keys"`
 }
 
 // New creates a new store with JSON file storage
@@ -63,20 +82,71 @@ func (s *Store) load() error {
 	}
 
 	var jd jsonData
-	if err := json.Unmarshal(data, &jd); err != nil {
-		return fmt.Errorf("failed to parse JSON: %w", err)
+	err = json.Unmarshal(data, &jd)
+	
+	if err == nil {
+		// New format succeeded
+		s.connections = jd.Connections
+		s.hostKeys = jd.HostKeys
+		s.updateNextID()
+		return nil
 	}
 
-	s.connections = jd.Connections
-	s.hostKeys = jd.HostKeys
+	// New format failed → attempt migration
+	log.Println("Attempting timestamp migration from legacy format...")
+	
+	backupPath := s.filePath + ".pre-migration"
+	if _, statErr := os.Stat(backupPath); os.IsNotExist(statErr) {
+		if backupErr := os.WriteFile(backupPath, data, 0600); backupErr != nil {
+			log.Printf("Warning: failed to create backup: %v", backupErr)
+		} else {
+			log.Printf("Created backup at %s", backupPath)
+		}
+	}
 
+	var legacyData legacyJsonData
+	if err := json.Unmarshal(data, &legacyData); err != nil {
+		return fmt.Errorf("failed to parse JSON (tried both formats): %w", err)
+	}
+
+	s.connections = make([]*models.Connection, len(legacyData.Connections))
+	for i, legacy := range legacyData.Connections {
+		s.connections[i] = &models.Connection{
+			ID:                legacy.ID,
+			Name:              legacy.Name,
+			Host:              legacy.Host,
+			Port:              legacy.Port,
+			Username:          legacy.Username,
+			EncryptedPassword: legacy.EncryptedPassword,
+			PrivateKeyPath:    legacy.PrivateKeyPath,
+			CreatedAt:         convertTimestamp(legacy.CreatedAt),
+			UpdatedAt:         convertTimestamp(legacy.UpdatedAt),
+		}
+	}
+	s.hostKeys = legacyData.HostKeys
+	s.updateNextID()
+
+	if err := s.save(); err != nil {
+		return fmt.Errorf("migration completed but failed to save: %w", err)
+	}
+
+	log.Printf("Successfully migrated %d connections to new format", len(s.connections))
+	return nil
+}
+
+func (s *Store) updateNextID() {
 	for _, conn := range s.connections {
 		if conn.ID >= s.nextID {
 			s.nextID = conn.ID + 1
 		}
 	}
+}
 
-	return nil
+func convertTimestamp(t time.Time) int64 {
+	if t.IsZero() {
+		return time.Now().Unix()
+	}
+	return t.Unix()
 }
 
 func (s *Store) save() error {

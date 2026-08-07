@@ -53,3 +53,20 @@
   padding-right: 4px;
 }
 
+.fileItem.dragging {
+  opacity: 0.5;
+  cursor: move;
+}
+
+.fileItem.dragTarget {
+  background: var(--bg-active);
+  border-left-color: var(--accent-primary);
+  border-left-width: 3px;
+}
+
+.fileItem.selected {
+  background: var(--bg-hover);
+  border-left-color: var(--accent-primary);
+  border-left-width: 2px;
+}
+

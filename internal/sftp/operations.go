@@ -35,7 +35,7 @@ func (c *Client) ListDirectory(path string) ([]FileInfo, error) {
 			Name:         entry.Name(),
 			Size:         entry.Size(),
 			Mode:         uint32(entry.Mode()),
-			ModifiedTime: entry.ModTime(),
+			ModifiedTime: entry.ModTime().Unix(),
 			IsDir:        entry.IsDir(),
 			Path:         filepath.Join(path, entry.Name()),
 		})
@@ -140,7 +140,7 @@ func (c *Client) GetStat(path string) (*FileInfo, error) {
 		Name:         stat.Name(),
 		Size:         stat.Size(),
 		Mode:         uint32(stat.Mode()),
-		ModifiedTime: stat.ModTime(),
+		ModifiedTime: stat.ModTime().Unix(),
 		IsDir:        stat.IsDir(),
 		Path:         path,
 	}, nil
