@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [2026-08-07] **Kebab menu (three-dot menu) with "Edit Connection" feature** — IMPLEMENTED ✅
+  - **User request (Indonesian):** "tambahin titik 3 di sebelah list connection untuk masing masing connection, kalau di klik muncul dialog untuk edit koneksi"
+  - **Translation:** Add three dots next to each connection in the connection list. When clicked, show a dialog to edit the connection.
+  - **Feature scope:** Kebab menu button (⋮) on each connection item in sidebar (visible on hover), dropdown menu with "Edit Connection" option, edit modal pre-filled with connection data, password field optional (empty = keep current password), auth type toggle (password ↔ private key) with inactive field clearing, form validation, backend `UpdateConnection()` API integration, connection list auto-refresh after save
+  - **Components:** Kebab menu button (MoreVertical icon, absolute positioned right), glass morphism dropdown (click-outside handler, ref pattern), Edit Connection modal (duplicates Add Connection modal structure)
+  - **State management:** `openMenuId` (tracks which menu is open), `editingConnection` (connection being edited), `isEditModalOpen`, `editFormData`, `editAuthType`, `editFormError`
+  - **Event handling:** `e.stopPropagation()` on kebab button (prevents connection selection), click-outside listener with ref-based latest-value pattern (avoids listener recreation), auth toggle clears inactive field
+  - **Styling:** Mission Control design system (cyan accents `var(--accent-primary)`, glass morphism `backdrop-filter: blur(12px)`, CSS Modules, reduced-motion support)
+  - **Accessibility:** ARIA labels (`aria-label="Connection options"`), keyboard support (Tab, Enter, Escape), `:focus-visible` outlines, modal semantics (`role="dialog"`, `aria-modal="true"`)
+  - **Files modified:** `frontend/src/components/App.tsx` (+150 lines), `frontend/src/components/App.module.css` (+80 lines)
+  - **Backend API:** `UpdateConnection(id, name, host, port, username, password, privateKeyPath)` — empty password preserves current encrypted value
+  - **Review status:** APPROVED (all 5 implementation fixes verified)
+  - **Documentation:** User guide + developer reference at `docs/guides/edit-connection-feature.md`, API reference at `docs/api/connection-management.md`
+  - **See:** `docs/planning/implementation-001-edit-connection-kebab-menu.md` (implementation plan)
+
 ### Changed
 - [2026-08-07] Changed folder navigation from double-click to single-click in SFTP file manager (`frontend/src/components/FileExplorer.tsx`, `frontend/src/components/FileItem.tsx`)
   - **User request (Indonesian):** "buat masuk ke folder di file manager" (single-click to enter folders)

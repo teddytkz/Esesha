@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Plus, RefreshCw, Server, ServerOff, X, CheckCircle2, FolderOpen } from 'lucide-react';
-import { ListConnections, CreateConnection, SelectPrivateKeyFile } from '@wailsjs/go/main/App';
+import { Plus, RefreshCw, Server, ServerOff, X, CheckCircle2, FolderOpen, MoreVertical, Edit } from 'lucide-react';
+import { ListConnections, CreateConnection, SelectPrivateKeyFile, UpdateConnection } from '@wailsjs/go/main/App';
 import { models } from '@wailsjs/go/models';
 import Terminal from './Terminal';
 import FileExplorer from './FileExplorer';
@@ -44,11 +44,42 @@ const App: React.FC = () => {
   const [passphrasePrompt, setPassphrasePrompt] = useState<{
     connection: models.Connection;
   } | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [editingConnection, setEditingConnection] = useState<models.Connection | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState<NewConnection>({
+    name: '',
+    host: '',
+    port: 22,
+    username: '',
+    password: '',
+    privateKeyPath: ''
+  });
+  const [editAuthType, setEditAuthType] = useState<'password' | 'key'>('password');
+  const [editFormError, setEditFormError] = useState('');
 
   const terminalRefs = useRef<Map<string, { disconnect: () => void; clear: () => void }>>(new Map());
+  const openMenuIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     loadConnections();
+  }, []);
+
+  useEffect(() => {
+    openMenuIdRef.current = openMenuId;
+  }, [openMenuId]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (openMenuIdRef.current === null) return;
+      const target = e.target as Element;
+      if (!target.closest(`.${styles.kebabDropdown}`) && !target.closest(`.${styles.kebabButton}`)) {
+        setOpenMenuId(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const loadConnections = async () => {
@@ -96,6 +127,70 @@ const App: React.FC = () => {
     setSessions(prev => [...prev, pendingSession]);
     setActiveSessionIndex(sessions.length);
     setStatusText(`Connecting to ${conn.name}...`);
+  };
+
+  const handleEditConnection = (conn: models.Connection) => {
+    setEditingConnection(conn);
+    setEditFormData({
+      name: conn.name,
+      host: conn.host,
+      port: conn.port,
+      username: conn.username,
+      password: '',
+      privateKeyPath: conn.privateKeyPath || ''
+    });
+    setEditAuthType(conn.privateKeyPath ? 'key' : 'password');
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingConnection(null);
+    setEditFormData({
+      name: '',
+      host: '',
+      port: 22,
+      username: '',
+      password: '',
+      privateKeyPath: ''
+    });
+    setEditAuthType('password');
+    setEditFormError('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingConnection) return;
+    
+    setEditFormError('');
+    
+    try {
+      await UpdateConnection(
+        editingConnection.id,
+        editFormData.name,
+        editFormData.host,
+        editFormData.port,
+        editFormData.username,
+        editFormData.password,
+        editFormData.privateKeyPath
+      );
+      
+      await loadConnections();
+      closeEditModal();
+      setStatusText(`Updated ${editFormData.name}`);
+    } catch (err) {
+      setEditFormError(`Failed to update: ${err}`);
+    }
+  };
+
+  const selectEditPrivateKeyFile = async () => {
+    try {
+      const path = await SelectPrivateKeyFile();
+      if (path) {
+        setEditFormData({...editFormData, privateKeyPath: path});
+      }
+    } catch (err) {
+      setStatusText(`Error selecting file: ${err}`);
+    }
   };
 
   const handleConnect = useCallback((sid: string, connectionId: number) => {
@@ -281,6 +376,33 @@ const App: React.FC = () => {
                     <span className={styles.connName}>{conn.name}</span>
                     <span className={styles.connDetails}>{conn.username}@{conn.host}:{conn.port}</span>
                   </span>
+                  <button
+                    type="button"
+                    className={styles.kebabButton}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId(openMenuId === conn.id ? null : conn.id);
+                    }}
+                    aria-label="Connection options"
+                  >
+                    <MoreVertical size={16} />
+                  </button>
+                  {openMenuId === conn.id && (
+                    <div className={styles.kebabDropdown}>
+                      <button
+                        type="button"
+                        className={styles.dropdownItem}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditConnection(conn);
+                          setOpenMenuId(null);
+                        }}
+                      >
+                        <Edit size={14} />
+                        Edit Connection
+                      </button>
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -515,6 +637,137 @@ const App: React.FC = () => {
             <div className={styles.modalFooter}>
               <button type="button" className={styles.btnCancel} onClick={closeAddForm}>Cancel</button>
               <button type="button" className={styles.btnSave} onClick={saveConnection}>Save Connection</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditModalOpen && editingConnection && (
+        <div 
+          className={styles.modalOverlay} 
+          onClick={closeEditModal}
+          onKeyDown={(e) => e.key === 'Escape' && closeEditModal()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-modal-title"
+        >
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalAccent} />
+            <div className={styles.modalHeader}>
+              <h3 id="edit-modal-title">Edit SSH Connection</h3>
+              <button type="button" className={styles.btnCloseModal} onClick={closeEditModal} aria-label="Close dialog">
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.formGroup}>
+                <label htmlFor="edit-conn-name">Connection Name</label>
+                <input 
+                  id="edit-conn-name"
+                  type="text" 
+                  value={editFormData.name} 
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  placeholder="My Server" 
+                />
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="edit-conn-host">Host</label>
+                  <input 
+                    id="edit-conn-host"
+                    type="text" 
+                    value={editFormData.host}
+                    onChange={(e) => setEditFormData({...editFormData, host: e.target.value})}
+                    placeholder="192.168.1.1" 
+                  />
+                </div>
+                <div className={`${styles.formGroup} ${styles.formGroupSmall}`}>
+                  <label htmlFor="edit-conn-port">Port</label>
+                  <input 
+                    id="edit-conn-port"
+                    type="number" 
+                    value={editFormData.port}
+                    onChange={(e) => setEditFormData({...editFormData, port: parseInt(e.target.value) || 22})}
+                  />
+                </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="edit-conn-username">Username</label>
+                <input 
+                  id="edit-conn-username"
+                  type="text" 
+                  value={editFormData.username}
+                  onChange={(e) => setEditFormData({...editFormData, username: e.target.value})}
+                  placeholder="root" 
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Authentication</label>
+                <div className={styles.authToggle} role="group" aria-label="Authentication type">
+                  <button
+                    type="button"
+                    className={`${styles.authToggleBtn} ${editAuthType === 'password' ? styles.authToggleBtnActive : ''}`}
+                    onClick={() => {
+                      setEditAuthType('password');
+                      setEditFormData({...editFormData, privateKeyPath: ''});
+                    }}
+                    aria-pressed={editAuthType === 'password'}
+                  >
+                    Password
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.authToggleBtn} ${editAuthType === 'key' ? styles.authToggleBtnActive : ''}`}
+                    onClick={() => {
+                      setEditAuthType('key');
+                      setEditFormData({...editFormData, password: ''});
+                    }}
+                    aria-pressed={editAuthType === 'key'}
+                  >
+                    Private Key
+                  </button>
+                </div>
+              </div>
+              {editAuthType === 'password' ? (
+                <div className={styles.formGroup}>
+                  <label htmlFor="edit-conn-auth-password">Password</label>
+                  <input 
+                    id="edit-conn-auth-password"
+                    type="password" 
+                    value={editFormData.password}
+                    onChange={(e) => setEditFormData({...editFormData, password: e.target.value})}
+                    placeholder="Leave empty to keep current password"
+                  />
+                </div>
+              ) : (
+                <div className={styles.formGroup}>
+                  <label htmlFor="edit-conn-auth-privatekey">Private Key Path</label>
+                  <div className={styles.fileInputGroup}>
+                    <input 
+                      id="edit-conn-auth-privatekey"
+                      type="text" 
+                      value={editFormData.privateKeyPath}
+                      onChange={(e) => setEditFormData({...editFormData, privateKeyPath: e.target.value})}
+                      placeholder="C:\Users\user\.ssh\id_rsa" 
+                    />
+                    <button 
+                      type="button" 
+                      className={styles.btnBrowse}
+                      onClick={selectEditPrivateKeyFile}
+                      aria-label="Browse for private key file"
+                    >
+                      <FolderOpen size={16} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              )}
+              {editFormError && (
+                <div className={`${styles.formMessage} ${styles.error}`} role="alert">{editFormError}</div>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              <button type="button" className={styles.btnCancel} onClick={closeEditModal}>Cancel</button>
+              <button type="button" className={styles.btnSave} onClick={handleSaveEdit}>Save Changes</button>
             </div>
           </div>
         </div>
