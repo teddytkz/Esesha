@@ -15,8 +15,6 @@ import (
 
 	"github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
-	"github.com/wailsapp/wails/v2/pkg/menu"
-	"github.com/wailsapp/wails/v2/pkg/menu/keys"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -519,73 +517,19 @@ func (a *App) EditFile(sessionID, remotePath string) error {
 	return nil
 }
 
-// BuildMenu creates the native menu
-func (a *App) BuildMenu() *menu.Menu {
-	appMenu := menu.NewMenu()
-
-	fileMenu := appMenu.AddSubmenu("File")
-	fileMenu.AddText("Create Desktop Shortcut", nil, func(_ *menu.CallbackData) {
-		if err := a.CreateDesktopShortcut(); err != nil {
-			runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-				Type:    runtime.ErrorDialog,
-				Title:   "Error",
-				Message: fmt.Sprintf("Failed to create shortcut: %v", err),
-			})
-		} else {
-			runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-				Type:    runtime.InfoDialog,
-				Title:   "Success",
-				Message: "Desktop shortcut created successfully.",
-			})
-		}
-	})
-
-	// Connection submenu
-	connectionMenu := fileMenu.AddSubmenu("Connection")
-	connectionMenu.AddText("Backup", keys.CmdOrCtrl("b"), func(_ *menu.CallbackData) {
-		if err := a.BackupConnections(); err != nil {
-			runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-				Type:    runtime.ErrorDialog,
-				Title:   "Backup Failed",
-				Message: fmt.Sprintf("Failed to backup connections: %v", err),
-			})
-		}
-	})
-	connectionMenu.AddText("Restore", keys.CmdOrCtrl("r"), func(_ *menu.CallbackData) {
-		runtime.EventsEmit(a.ctx, "menu:restore")
-	})
-
-	fileMenu.AddSeparator()
-	fileMenu.AddText("Exit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
-		runtime.Quit(a.ctx)
-	})
-
-	helpMenu := appMenu.AddSubmenu("Help")
-	helpMenu.AddText("About Esesha", nil, func(_ *menu.CallbackData) {
-		info := a.GetAboutInfo()
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-			Type:    runtime.InfoDialog,
-			Title:   "About Esesha",
-			Message: fmt.Sprintf("%s\n\nVersion: %s\nLicense: %s\n\n%s", info["name"], info["version"], info["license"], info["credits"]),
-		})
-	})
-
-	return appMenu
-}
-
 // BackupConnections exports connections to backup folder
-func (a *App) BackupConnections() error {
+func (a *App) BackupConnections() (string, error) {
 	// Get executable directory
 	exePath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("get executable path: %w", err)
+		return "", fmt.Errorf("get executable path: %w", err)
 	}
 	exeDir := filepath.Dir(exePath)
 
 	// Create backup directory if not exists
 	backupDir := filepath.Join(exeDir, "backup")
 	if err := os.MkdirAll(backupDir, 0755); err != nil {
-		return fmt.Errorf("create backup directory: %w", err)
+		return "", fmt.Errorf("create backup directory: %w", err)
 	}
 
 	// Generate filename with timestamp
@@ -593,17 +537,10 @@ func (a *App) BackupConnections() error {
 	filePath := filepath.Join(backupDir, filename)
 
 	if err := a.store.ExportJSON(filePath); err != nil {
-		return err
+		return "", err
 	}
 
-	// Show success message
-	runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-		Type:    runtime.InfoDialog,
-		Title:   "Backup Successful",
-		Message: fmt.Sprintf("Connections backed up to:\n%s", filePath),
-	})
-
-	return nil
+	return filePath, nil
 }
 
 // RestoreConnections imports connections from a user-selected JSON file

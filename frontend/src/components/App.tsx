@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Plus, RefreshCw, Server, ServerOff, X, CheckCircle2, FolderOpen, MoreVertical, Edit, Trash2, Upload } from 'lucide-react';
-import { ListConnections, CreateConnection, SelectPrivateKeyFile, UpdateConnection, DeleteConnection, ImportConnectionFromBackup } from '@wailsjs/go/main/App';
+import { Plus, RefreshCw, Server, ServerOff, X, CheckCircle2, FolderOpen, MoreVertical, Edit, Trash2, Upload, Download, LogOut, Info, MonitorDown, ChevronRight } from 'lucide-react';
+import { ListConnections, CreateConnection, SelectPrivateKeyFile, UpdateConnection, DeleteConnection, ImportConnectionFromBackup, BackupConnections, CreateDesktopShortcut, GetAboutInfo } from '@wailsjs/go/main/App';
 import { models } from '@wailsjs/go/models';
-import { EventsOn, EventsOff } from '@wailsjs/runtime/runtime';
+import { Quit } from '@wailsjs/runtime/runtime';
 import Terminal from './Terminal';
 import FileExplorer from './FileExplorer';
 import PassphraseDialog from './PassphraseDialog';
@@ -63,21 +63,27 @@ const App: React.FC = () => {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importError, setImportError] = useState('');
   const [importSuccess, setImportSuccess] = useState('');
+  const [importing, setImporting] = useState(false);
+  const importingRef = useRef(false);
+  const [backupPath, setBackupPath] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [openMenu, setOpenMenu] = useState<'' | 'file' | 'help'>('');
+  const [openSubmenu, setOpenSubmenu] = useState<'' | 'connection'>('');
+  const [aboutInfo, setAboutInfo] = useState<Record<string, string> | null>(null);
+  const menuBarRef = useRef<HTMLDivElement>(null);
+  const openMenuRef = useRef<'' | 'file' | 'help'>('');
 
   const terminalRefs = useRef<Map<string, { disconnect: () => void; clear: () => void }>>(new Map());
   const openMenuIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     loadConnections();
-
-    // Listen for menu events from native Wails menu
-    EventsOn('menu:restore', handleMenuRestore);
-
-    return () => {
-      EventsOff('menu:restore');
-    };
   }, []);
+
+  useEffect(() => {
+    openMenuRef.current = openMenu;
+  }, [openMenu]);
 
   useEffect(() => {
     openMenuIdRef.current = openMenuId;
@@ -85,8 +91,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (openMenuIdRef.current === null) return;
       const target = e.target as Element;
+      if (openMenuRef.current && menuBarRef.current && !menuBarRef.current.contains(target)) {
+        setOpenMenu('');
+      }
+      if (openMenuIdRef.current === null) return;
       if (!target.closest(`.${styles.kebabDropdown}`) && !target.closest(`.${styles.kebabButton}`)) {
         setOpenMenuId(null);
       }
@@ -238,7 +247,64 @@ const App: React.FC = () => {
     setDeleteConfirm(null);
   };
 
+  const toggleMenu = (menu: '' | 'file' | 'help') => {
+    setOpenSubmenu('');
+    setOpenMenu(prev => (prev === menu ? '' : menu));
+  };
+
+  const handleBackup = async () => {
+    setOpenMenu('');
+    setStatusText('Backing up connections...');
+    try {
+      const path = await BackupConnections();
+      setBackupPath(path);
+      setStatusText('Connections backed up');
+    } catch (err) {
+      setStatusText(`Backup failed: ${err}`);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      if (!file.name.endsWith('.json')) {
+        setImportError('Please select a JSON file');
+        setImportFile(null);
+        return;
+      }
+      setImportFile(file);
+      setImportError('');
+    }
+  };
+
+  const handleCreateShortcut = async () => {
+    setOpenMenu('');
+    try {
+      await CreateDesktopShortcut();
+      setStatusText('Desktop shortcut created');
+    } catch (err) {
+      setStatusText(`Shortcut failed: ${err}`);
+    }
+  };
+
+  const handleQuit = () => {
+    setOpenMenu('');
+    Quit();
+  };
+
+  const handleAbout = async () => {
+    setOpenMenu('');
+    try {
+      setAboutInfo(await GetAboutInfo());
+    } catch (err) {
+      setStatusText(`Error loading about info: ${err}`);
+    }
+  };
+
   const handleMenuRestore = () => {
+    setOpenMenu('');
     setShowImportModal(true);
     setImportFile(null);
     setImportError('');
@@ -250,6 +316,8 @@ const App: React.FC = () => {
     setImportFile(null);
     setImportError('');
     setImportSuccess('');
+    importingRef.current = false;
+    setImporting(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -273,7 +341,10 @@ const App: React.FC = () => {
       setImportError('Please select a file');
       return;
     }
+    if (importingRef.current) return;
 
+    importingRef.current = true;
+    setImporting(true);
     setImportError('');
     setImportSuccess('');
 
@@ -365,6 +436,8 @@ const App: React.FC = () => {
         setImportError(`Error reading file: ${err}`);
       }
     }
+    importingRef.current = false;
+    setImporting(false);
   };
 
   const handleConnect = useCallback((sid: string, connectionId: number) => {
@@ -495,6 +568,77 @@ const App: React.FC = () => {
 
   return (
     <main className={styles.main}>
+      <div ref={menuBarRef} className={styles.menuBar}>
+        <div className={styles.menuGroup}>
+          <button
+            type="button"
+            className={`${styles.menuItem} ${openMenu === 'file' ? styles.menuItemOpen : ''}`}
+            onClick={() => toggleMenu('file')}
+            aria-haspopup="true"
+            aria-expanded={openMenu === 'file'}
+          >
+            File
+          </button>
+          {openMenu === 'file' && (
+            <div className={styles.menuDropdown} role="menu" aria-label="File menu">
+              <div className={styles.menuSubmenu}>
+                <button
+                  type="button"
+                  className={`${styles.dropdownItem} ${openSubmenu === 'connection' ? styles.dropdownItemOpen : ''}`}
+                  role="menuitem"
+                  aria-haspopup="true"
+                  aria-expanded={openSubmenu === 'connection'}
+                  onClick={() => setOpenSubmenu(prev => (prev === 'connection' ? '' : 'connection'))}
+                >
+                  <Server size={14} />
+                  Connection
+                  <ChevronRight size={14} className={styles.menuSubmenuArrow} />
+                </button>
+                {openSubmenu === 'connection' && (
+                  <div className={styles.menuSubmenuDropdown} role="menu" aria-label="Connection menu">
+                    <button type="button" className={styles.dropdownItem} role="menuitem" onClick={handleBackup}>
+                      <Upload size={14} />
+                      Backup Connections
+                    </button>
+                    <button type="button" className={styles.dropdownItem} role="menuitem" onClick={handleMenuRestore}>
+                      <Download size={14} />
+                      Restore Connections
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button type="button" className={styles.dropdownItem} role="menuitem" onClick={handleCreateShortcut}>
+                <MonitorDown size={14} />
+                Create Desktop Shortcut
+              </button>
+              <div className={styles.menuSeparator} />
+              <button type="button" className={styles.dropdownItem} role="menuitem" onClick={handleQuit}>
+                <LogOut size={14} />
+                Exit
+              </button>
+            </div>
+          )}
+        </div>
+        <div className={styles.menuGroup}>
+          <button
+            type="button"
+            className={`${styles.menuItem} ${openMenu === 'help' ? styles.menuItemOpen : ''}`}
+            onClick={() => toggleMenu('help')}
+            aria-haspopup="true"
+            aria-expanded={openMenu === 'help'}
+          >
+            Help
+          </button>
+          {openMenu === 'help' && (
+            <div className={styles.menuDropdown} role="menu" aria-label="Help menu">
+              <button type="button" className={styles.dropdownItem} role="menuitem" onClick={handleAbout}>
+                <Info size={14} />
+                About Esesha
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
       <div className={styles.appContainer}>
         <div className={styles.sidebar}>
           <div className={styles.header}>
@@ -985,6 +1129,31 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {backupPath && (
+        <div className={styles.modalOverlay} onClick={() => setBackupPath(null)} role="dialog" aria-modal="true" aria-labelledby="backup-title">
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div className={styles.modalHeader}>
+              <h3 id="backup-title">Backup Successful</h3>
+              <button type="button" className={styles.btnCloseModal} onClick={() => setBackupPath(null)} aria-label="Close dialog">
+                <X size={20} aria-hidden="true" />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={`${styles.formMessage} ${styles.success}`} role="status">
+                <CheckCircle2 size={14} aria-hidden="true" />
+                Connections backed up
+              </div>
+              <p style={{ marginTop: '1rem', marginBottom: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', wordBreak: 'break-all' }}>
+                {backupPath}
+              </p>
+            </div>
+            <div className={styles.modalFooter}>
+              <button type="button" className={styles.btnSave} onClick={() => setBackupPath(null)}>OK</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showImportModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent} style={{ maxWidth: '450px' }}>
@@ -1003,7 +1172,12 @@ const App: React.FC = () => {
               <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
                 Select a JSON backup file to restore connections.
               </p>
-              <div className={styles.importFileArea}>
+              <div
+                className={`${styles.importFileArea}${dragOver ? ' ' + styles.importFileAreaDrag : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+              >
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1018,7 +1192,7 @@ const App: React.FC = () => {
                     {importFile ? importFile.name : 'Choose a JSON file'}
                   </span>
                   <span className={styles.importFileLabelHint}>
-                    Click to browse
+                    Click to browse or drag & drop
                   </span>
                 </label>
               </div>
@@ -1034,9 +1208,9 @@ const App: React.FC = () => {
             </div>
             <div className={styles.modalFooter}>
               <button type="button" className={styles.btnCancel} onClick={closeImportModal}>Cancel</button>
-              <button type="button" className={styles.btnSave} onClick={handleImport} disabled={!importFile}>
-                <Upload size={16} />
-                Restore
+              <button type="button" className={styles.btnSave} onClick={handleImport} disabled={!importFile || importing}>
+                <Download size={16} />
+                {importing ? 'Restoring...' : 'Restore'}
               </button>
             </div>
           </div>
@@ -1049,6 +1223,37 @@ const App: React.FC = () => {
           onSubmit={handlePassphraseSubmit}
           onCancel={() => setPassphrasePrompt(null)}
         />
+      )}
+
+      {aboutInfo && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setAboutInfo(null)}
+          onKeyDown={(e) => e.key === 'Escape' && setAboutInfo(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="about-title"
+        >
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <div className={styles.modalHeader}>
+              <h3 id="about-title">About Esesha</h3>
+              <button type="button" className={styles.btnCloseModal} onClick={() => setAboutInfo(null)} aria-label="Close dialog">
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.aboutInfo}>
+                <strong className={styles.aboutName}>{aboutInfo.name}</strong>
+                <div className={styles.aboutRow}>Version: {aboutInfo.version}</div>
+                <div className={styles.aboutRow}>License: {aboutInfo.license}</div>
+                <div className={styles.aboutCredits}>{aboutInfo.credits}</div>
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button type="button" className={styles.btnSave} onClick={() => setAboutInfo(null)}>OK</button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );

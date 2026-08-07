@@ -6,10 +6,6 @@ export function BackupConnections() {
   return window['go']['main']['App']['BackupConnections']();
 }
 
-export function BuildMenu() {
-  return window['go']['main']['App']['BuildMenu']();
-}
-
 export function ChangePermissions(arg1, arg2, arg3) {
   return window['go']['main']['App']['ChangePermissions'](arg1, arg2, arg3);
 }
