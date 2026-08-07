@@ -644,7 +644,7 @@ const App: React.FC = () => {
           <div className={styles.header}>
             <div className={styles.brand}>
               <h2 className={styles.brandName}>Esesha</h2>
-              <span className={styles.brandSub}>SSH Mission Console</span>
+              <span className={styles.brandSub}>SSH Waku Waku Console</span>
             </div>
             <div className={styles.headerButtons}>
               <button type="button" className={styles.btnAdd} onClick={openAddForm} aria-label="Add connection">
