@@ -43,6 +43,8 @@ export function ListConnections():Promise<Array<models.Connection>>;
 
 export function ListDirectory(arg1:string,arg2:string):Promise<Array<sftp.FileInfo>>;
 
+export function ReadFile(arg1:string,arg2:string):Promise<string>;
+
 export function RenamePath(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function ResizeTerminal(arg1:string,arg2:number,arg3:number):Promise<void>;
@@ -58,3 +60,5 @@ export function UpdateConnection(arg1:number,arg2:string,arg3:string,arg4:number
 export function UploadFile(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function UploadFileData(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function WriteFile(arg1:string,arg2:string,arg3:string):Promise<void>;

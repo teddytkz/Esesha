@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"esesha/internal/crypto"
 	"esesha/internal/db"
 	"esesha/internal/editor"
@@ -388,6 +389,74 @@ func (a *App) DownloadFileToDialog(sessionID, remotePath string) error {
 	}
 
 	return a.DownloadFile(sessionID, remotePath, savePath)
+}
+
+// ReadFile reads a remote file and returns its contents as base64
+func (a *App) ReadFile(sessionID, remotePath string) (string, error) {
+	sshClient, err := a.sshManager.GetSSHClient(sessionID)
+	if err != nil {
+		return "", err
+	}
+
+	sftpClient, err := a.sftpManager.GetOrCreateClient(sessionID, sshClient.GetSSHClient())
+	if err != nil {
+		return "", fmt.Errorf("sftp init failed: %w", err)
+	}
+
+	c := sftpClient.GetClient()
+	f, err := c.Open(remotePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	stat, err := f.Stat()
+	if err != nil {
+		return "", err
+	}
+
+	data := make([]byte, stat.Size())
+	_, err = f.Read(data)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(data), nil
+}
+
+// WriteFile writes base64 data to a remote file
+func (a *App) WriteFile(sessionID, remotePath, base64Data string) error {
+	data, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		return fmt.Errorf("decode base64 failed: %w", err)
+	}
+
+	sshClient, err := a.sshManager.GetSSHClient(sessionID)
+	if err != nil {
+		return err
+	}
+
+	sftpClient, err := a.sftpManager.GetOrCreateClient(sessionID, sshClient.GetSSHClient())
+	if err != nil {
+		return fmt.Errorf("sftp init failed: %w", err)
+	}
+
+	c := sftpClient.GetClient()
+	f, err := c.Create(remotePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err := f.Write(data); err != nil {
+		return err
+	}
+
+	runtime.EventsEmit(a.ctx, "editor:saved", map[string]interface{}{
+		"sessionId":  sessionID,
+		"remotePath": remotePath,
+	})
+	return nil
 }
 
 // DeletePath deletes file or directory via SFTP

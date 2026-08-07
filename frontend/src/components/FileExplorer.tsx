@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Upload, RefreshCw, ArrowUp, Edit2, Trash2, FolderOpen, CheckCircle2, AlertTriangle, Info, ChevronRight } from 'lucide-react';
 import FileItem from './FileItem';
+import FileEditor from './FileEditor';
 import styles from './FileExplorer.module.css';
 
 interface FileInfo {
@@ -44,12 +45,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadActive, setUploadActive] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [editingFile, setEditingFile] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const [dialog, setDialog] = useState<DialogState>(null);
   const toastTimerRef = useRef<number | null>(null);
   const [draggedItem, setDraggedItem] = useState<FileInfo | null>(null);
   const [dragTargetItem, setDragTargetItem] = useState<FileInfo | null>(null);
+  const [editingPath, setEditingPath] = useState<string | null>(null);
 
   const pathParts = useMemo(() => 
     currentPath.split('/').filter(p => p), 
@@ -77,26 +78,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
     const handleEditorSaved = (data: { sessionId: string; remotePath: string }) => {
       if (data.sessionId === sessionId) {
         showToast(`File saved: ${data.remotePath}`, 'success');
-        setEditingFile(null);
         loadDirectory(currentPathRef.current);
-      }
-    };
-
-    const handleEditorError = (data: { sessionId: string; error: string }) => {
-      if (data.sessionId === sessionId) {
-        showToast(`Editor error: ${data.error}`, 'error');
-        setEditingFile(null);
       }
     };
 
     window.runtime.EventsOn('sftp:progress', handleProgress);
     window.runtime.EventsOn('editor:saved', handleEditorSaved);
-    window.runtime.EventsOn('editor:error', handleEditorError);
 
     return () => {
       window.runtime.EventsOff('sftp:progress');
       window.runtime.EventsOff('editor:saved');
-      window.runtime.EventsOff('editor:error');
     };
   }, [sessionId]);
 
@@ -173,17 +164,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
     setSelectedItem(null);
   };
 
-  const editFile = async (item: FileInfo) => {
-    try {
-      const remotePath = currentPath === '/' ? `/${item.name}` : `${currentPath}/${item.name}`;
-      setEditingFile(remotePath);
-      if (window.go?.main?.App?.EditFile) {
-        await window.go.main.App.EditFile(sessionId, remotePath);
-      }
-    } catch (err) {
-      showToast(`Edit failed: ${err}`, 'error');
-      setEditingFile(null);
-    }
+  const editFile = (item: FileInfo) => {
+    const remotePath = currentPath === '/' ? `/${item.name}` : `${currentPath}/${item.name}`;
+    setEditingPath(remotePath);
     closeContextMenu();
   };
 
@@ -510,11 +493,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
         </div>
       )}
 
-      {editingFile && (
-        <div className={styles.editingIndicator}>
-          <span className={styles.spinner}></span>
-          Editing {editingFile}...
-        </div>
+      {editingPath && (
+        <FileEditor
+          key={editingPath}
+          sessionId={sessionId}
+          remotePath={editingPath}
+          onClose={() => {
+            setEditingPath(null);
+            loadDirectory(currentPathRef.current);
+          }}
+        />
       )}
 
       {toast && (

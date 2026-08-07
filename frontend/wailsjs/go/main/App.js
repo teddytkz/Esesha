@@ -82,6 +82,10 @@ export function ListDirectory(arg1, arg2) {
   return window['go']['main']['App']['ListDirectory'](arg1, arg2);
 }
 
+export function ReadFile(arg1, arg2) {
+  return window['go']['main']['App']['ReadFile'](arg1, arg2);
+}
+
 export function RenamePath(arg1, arg2, arg3) {
   return window['go']['main']['App']['RenamePath'](arg1, arg2, arg3);
 }
@@ -112,4 +116,8 @@ export function UploadFile(arg1, arg2, arg3) {
 
 export function UploadFileData(arg1, arg2, arg3) {
   return window['go']['main']['App']['UploadFileData'](arg1, arg2, arg3);
+}
+
+export function WriteFile(arg1, arg2, arg3) {
+  return window['go']['main']['App']['WriteFile'](arg1, arg2, arg3);
 }

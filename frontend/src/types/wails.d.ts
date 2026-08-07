@@ -22,12 +22,14 @@ declare global {
           GetDecryptedPassword(connectionId: number): Promise<string>;
           ListConnections(): Promise<models.Connection[]>;
           ListDirectory(sessionId: string, path: string): Promise<sftp.FileInfo[]>;
+          ReadFile(sessionId: string, remotePath: string): Promise<string>;
           RenamePath(sessionId: string, oldPath: string, newPath: string): Promise<void>;
           ResizeTerminal(sessionId: string, cols: number, rows: number): Promise<void>;
           SendInput(sessionId: string, input: string): Promise<void>;
           UpdateConnection(id: number, name: string, host: string, port: number, username: string, password: string, privateKeyPath: string): Promise<void>;
           UploadFile(sessionId: string, localPath: string, remotePath: string): Promise<void>;
           UploadFileData(sessionId: string, fileName: string, remotePath: string): Promise<void>;
+          WriteFile(sessionId: string, remotePath: string, base64Data: string): Promise<void>;
         };
       };
     };
