@@ -83,7 +83,7 @@ func (s *Store) load() error {
 
 	var jd jsonData
 	err = json.Unmarshal(data, &jd)
-	
+
 	if err == nil {
 		// New format succeeded
 		s.connections = jd.Connections
@@ -94,7 +94,7 @@ func (s *Store) load() error {
 
 	// New format failed → attempt migration
 	log.Println("Attempting timestamp migration from legacy format...")
-	
+
 	backupPath := s.filePath + ".pre-migration"
 	if _, statErr := os.Stat(backupPath); os.IsNotExist(statErr) {
 		if backupErr := os.WriteFile(backupPath, data, 0600); backupErr != nil {
