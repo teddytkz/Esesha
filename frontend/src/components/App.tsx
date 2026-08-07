@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Plus, RefreshCw, Server, ServerOff, X, CheckCircle2, FolderOpen, MoreVertical, Edit } from 'lucide-react';
-import { ListConnections, CreateConnection, SelectPrivateKeyFile, UpdateConnection } from '@wailsjs/go/main/App';
+import { Plus, RefreshCw, Server, ServerOff, X, CheckCircle2, FolderOpen, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { ListConnections, CreateConnection, SelectPrivateKeyFile, UpdateConnection, DeleteConnection } from '@wailsjs/go/main/App';
 import { models } from '@wailsjs/go/models';
 import Terminal from './Terminal';
 import FileExplorer from './FileExplorer';
@@ -57,6 +57,7 @@ const App: React.FC = () => {
   });
   const [editAuthType, setEditAuthType] = useState<'password' | 'key'>('password');
   const [editFormError, setEditFormError] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<models.Connection | null>(null);
 
   const terminalRefs = useRef<Map<string, { disconnect: () => void; clear: () => void }>>(new Map());
   const openMenuIdRef = useRef<number | null>(null);
@@ -162,6 +163,7 @@ const App: React.FC = () => {
     if (!editingConnection) return;
     
     setEditFormError('');
+    setLoading(true);
     
     try {
       await UpdateConnection(
@@ -174,11 +176,14 @@ const App: React.FC = () => {
         editFormData.privateKeyPath
       );
       
-      await loadConnections();
-      closeEditModal();
+      const result = await ListConnections();
+      setConnections(result || []);
       setStatusText(`Updated ${editFormData.name}`);
+      closeEditModal();
     } catch (err) {
       setEditFormError(`Failed to update: ${err}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -191,6 +196,33 @@ const App: React.FC = () => {
     } catch (err) {
       setStatusText(`Error selecting file: ${err}`);
     }
+  };
+
+  const handleDeleteConnection = async (conn: models.Connection) => {
+    setDeleteConfirm(conn);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    
+    setLoading(true);
+    try {
+      await DeleteConnection(deleteConfirm.id);
+      
+      const result = await ListConnections();
+      setConnections(result || []);
+      setStatusText(`Deleted ${deleteConfirm.name}`);
+      setDeleteConfirm(null);
+      setOpenMenuId(null);
+    } catch (err) {
+      setStatusText(`Failed to delete: ${err}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm(null);
   };
 
   const handleConnect = useCallback((sid: string, connectionId: number) => {
@@ -400,6 +432,18 @@ const App: React.FC = () => {
                       >
                         <Edit size={14} />
                         Edit Connection
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteConnection(conn);
+                          setOpenMenuId(null);
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        Delete Connection
                       </button>
                     </div>
                   )}
@@ -768,6 +812,34 @@ const App: React.FC = () => {
             <div className={styles.modalFooter}>
               <button type="button" className={styles.btnCancel} onClick={closeEditModal}>Cancel</button>
               <button type="button" className={styles.btnSave} onClick={handleSaveEdit}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirm && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.deleteDialog}>
+            <div className={styles.deleteIcon}>
+              <Trash2 size={28} strokeWidth={2} />
+            </div>
+            <div className={styles.deleteContent}>
+              <h2 className={styles.deleteTitle}>Delete Connection</h2>
+              <p className={styles.deleteMessage}>
+                Are you sure you want to delete <strong className={styles.deleteHighlight}>{deleteConfirm.name}</strong>?
+              </p>
+              <p className={styles.deleteWarning}>
+                This action cannot be undone.
+              </p>
+            </div>
+            <div className={styles.deleteActions}>
+              <button type="button" className={styles.deleteBtnCancel} onClick={cancelDelete}>
+                Cancel
+              </button>
+              <button type="button" className={styles.deleteBtnConfirm} onClick={confirmDelete}>
+                <Trash2 size={16} />
+                Delete
+              </button>
             </div>
           </div>
         </div>

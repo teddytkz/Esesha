@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
@@ -519,6 +520,21 @@ func (a *App) BuildMenu() *menu.Menu {
 			})
 		}
 	})
+	fileMenu.AddText("Backup Connections...", keys.CmdOrCtrl("b"), func(_ *menu.CallbackData) {
+		if err := a.BackupConnections(); err != nil {
+			runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+				Type:    runtime.ErrorDialog,
+				Title:   "Backup Failed",
+				Message: fmt.Sprintf("Failed to backup connections: %v", err),
+			})
+		} else {
+			runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+				Type:    runtime.InfoDialog,
+				Title:   "Backup Successful",
+				Message: "Connections backed up successfully.",
+			})
+		}
+	})
 	fileMenu.AddSeparator()
 	fileMenu.AddText("Exit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
 		runtime.Quit(a.ctx)
@@ -535,6 +551,27 @@ func (a *App) BuildMenu() *menu.Menu {
 	})
 
 	return appMenu
+}
+
+// BackupConnections exports connections to a user-selected JSON file
+func (a *App) BackupConnections() error {
+	defaultFilename := fmt.Sprintf("esesha-backup-%s.json", time.Now().Format("20060102-150405"))
+	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           "Backup Connections",
+		DefaultFilename: defaultFilename,
+		Filters: []runtime.FileFilter{
+			{DisplayName: "JSON Files (*.json)", Pattern: "*.json"},
+			{DisplayName: "All Files (*.*)", Pattern: "*.*"},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("dialog error: %w", err)
+	}
+	if filePath == "" {
+		return nil // User cancelled, not an error
+	}
+
+	return a.store.ExportJSON(filePath)
 }
 
 // CreateDesktopShortcut creates a Windows .lnk shortcut on the desktop

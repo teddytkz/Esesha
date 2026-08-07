@@ -2,11 +2,11 @@
 echo Building Esesha SSH Manager...
 echo.
 
-REM Backup connections.json if it exists
-set "CONN_FILE=build\bin\connections.json"
-set "BACKUP_FILE=connections.json.bak"
+REM Backup esesha.bin if it exists
+set "CONN_FILE=build\bin\esesha.bin"
+set "BACKUP_FILE=esesha.bin.bak"
 if exist "%CONN_FILE%" (
-    echo Backing up connections.json...
+    echo Backing up esesha.bin...
     copy /Y "%CONN_FILE%" "%BACKUP_FILE%" >nul
 )
 
@@ -26,9 +26,9 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-REM Restore connections.json if backup exists
+REM Restore esesha.bin if backup exists
 if exist "%BACKUP_FILE%" (
-    echo Restoring connections.json...
+    echo Restoring esesha.bin...
     copy /Y "%BACKUP_FILE%" "%CONN_FILE%" >nul
     del "%BACKUP_FILE%"
 )

@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+- None
+
+### Added
+- [2026-08-07] **PRD-007: Machine-Bound Keyless Encryption** — COMPLETE ✅
+  - **User request (Indonesian):** "saya ingin cukup fileexe dan bin tanpa ke registry"
+  - **Translation:** "I want only the exe file and bin file, without registry"
+  - **Scope:** Removed separate `esesha.bin.key` file; encryption key now derived from machine GUID + executable path using SHA-256; maintains AES-256-GCM encryption (only key derivation changed); auto-migrates existing `.key` files (decrypt with old key, re-encrypt with machine key, rename to `.key.migrated`)
+  - **Result:** Only 2 files exist: `esesha.exe` + `esesha.bin` (no separate key file)
+  - **Key derivation:** `SHA256(machineGUID + "|" + exeDir)` → 32 bytes deterministic
+  - **Security trade-off:** Machine-bound key is weaker than DPAPI file (reversible by anyone with system access), but provides convenience and simplicity; suitable for personal use, not shared computers
+  - **Implementation:** Added `getMachineGUID()` (reads from Windows registry), `deriveMachineKey()` (SHA-256 hash), `migrateFromKeyFile()` (one-time migration); simplified `loadOrCreateKey()` to migration-only; removed `saveKey()`; removed `keyPath` field from `Store` struct
+  - **Migration:** Existing installations auto-migrate transparently on first run; `.key` renamed to `.key.migrated` for safety (not deleted)
+  - **Files modified:** `internal/db/crypto.go` (+65 lines, -48 lines), `internal/db/store.go` (+8, -5), `internal/db/store_test.go` (+35, -25)
+  - **Test results:** 11/11 tests passing (2.059s) — added `TestMachineKeyDerivation`, updated `TestCrossPathDecryption`
+  - **Build:** `go build` successful, `wails build` successful (46.751s) → `build\bin\esesha.exe`
+  - **New dependency:** `golang.org/x/sys/windows/registry`
+  - **Review status:** Manual code review APPROVED — Registry access correct, SHA-256 implementation verified, migration logic safe, no key leakage, machine binding validated, test coverage complete
+  - **Supersedes:** PRD-006 (DPAPI key file approach)
+  - **See:** `docs/planning/prd-007-machine-bound-keyless-encryption.md` (full PRD), `docs/planning/PRD-007-CHECKLIST.md` (checklist)
+
+- [2026-08-07] **PRD-006: True Binary Storage with Full-File Encryption** — SUPERSEDED by PRD-007
+  - **User request (Indonesian):** "kok .bin nya cuma nama nya aja, saya ingin jadi file bin beneran"
+  - **Translation:** "The .bin file is just the name, I want it to be a real binary file"
+  - **Scope:** Implemented AES-256-GCM full-file encryption; binary format with magic header (`ESESHA01`) + version + nonce + ciphertext + auth tag; DPAPI-protected encryption key (machine-bound); automatic migration from JSON-based `esesha.bin` or `connections.json`; backup exports remain readable JSON
+  - **Security:** Entire file content encrypted (hostnames, usernames, host keys now protected); machine + user profile binding via DPAPI; tamper detection via GCM authentication tag; encryption key in separate `esesha.bin.key` file
+  - **Migration:** Existing JSON files auto-migrate to binary on first load (creates `.pre-binary-migration` backup); one-way migration (older versions can't read encrypted format)
+  - **Files created:** `internal/db/crypto.go` (encryption/decryption, key management, format detection, 150 lines), `internal/db/crypto_test.go` (unit tests, 11 tests passing), `internal/db/store_test.go` (integration tests)
+  - **Files modified:** `internal/db/store.go` (refactored migration helpers, integrated encryption in load/save, format detection)
+  - **Code quality:** Refactored `migrateFromConnectionsJSON()` and `migrateLegacyTimestamps()` helpers; 43% cognitive complexity reduction in key functions
+  - **Test results:** 11/11 tests passing, `go build ./...` successful, `wails build` successful, binary format verified (hex editor shows `ESESHA01`)
+  - **Review status:** Initial review APPROVED with 5 warnings/suggestions → all fixes implemented → final review APPROVED
+  - **Breaking change:** Storage format incompatible with older app versions; backup exports remain portable JSON
+  - **Documentation:** User guide at `docs/guides/binary-storage-encryption.md`, schema documentation at `docs/database/schema.md`
+  - **See:** `docs/planning/prd-006-true-binary-storage-encryption.md` (full PRD), `docs/planning/PRD-006-IMPLEMENTATION-COMPLETE.md` (implementation summary)
+
+### Added
+- [2026-08-07] **PRD-002: Binary Storage Format and JSON Backup Feature** — Rename connections storage from `connections.json` to `esesha.bin` and add backup feature (Superseded by PRD-006)
+  - **User request (Indonesian):** "untuk connextion.json, ubah jadi bin saja dengan nama esesha.bin, lalu di menu file ada backup yang nanti backupnya jadi file json"
+  - **Translation:** For connections.json, change it to bin format with name esesha.bin, then in the File menu add a backup option that backs up to a JSON file
+  - **Scope:** Rename runtime storage file to `esesha.bin` (internal format stays JSON); add "Backup Connections..." menu item in File menu; export connections to user-chosen JSON file; automatic migration from existing `connections.json` files; atomic file operations with safety backups
+  - **Migration:** Existing `connections.json` auto-renamed to `esesha.bin` on first load (creates `.filename-migration` backup)
+  - **Backup feature:** Native save file dialog, default filename `esesha-backup-{timestamp}.json`, preserves DPAPI blobs as-is, success/error dialogs
+  - **Files to modify:** `internal/db/store.go` (filename constant + ExportJSON method + migration logic), `app.go` (BackupConnections method + menu item), `build.bat` (update backup filename references)
+  - **Status:** Superseded by PRD-006 (user clarified wanting true binary encryption, not just filename change)
+  - **See:** `docs/planning/prd-002-binary-storage-and-backup.md` (full PRD with implementation plan)
+
 ### Added
 - [2026-08-07] **Kebab menu (three-dot menu) with "Edit Connection" feature** — IMPLEMENTED ✅
   - **User request (Indonesian):** "tambahin titik 3 di sebelah list connection untuk masing masing connection, kalau di klik muncul dialog untuk edit koneksi"

@@ -4,6 +4,8 @@ import {menu} from '../models';
 import {models} from '../models';
 import {sftp} from '../models';
 
+export function BackupConnections():Promise<void>;
+
 export function BuildMenu():Promise<menu.Menu>;
 
 export function ChangePermissions(arg1:string,arg2:string,arg3:number):Promise<void>;

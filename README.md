@@ -31,6 +31,7 @@ _Design system reference: [docs/design-system.md](docs/design-system.md)_
 - **Desktop Shortcut Creation** — Create shortcuts from File menu at runtime
 - **Professional Icon System** — SVG icons with full accessibility support
 - **Polished UI** — Smooth animations, hover effects, consistent spacing
+- **Encrypted Binary Storage** — AES-256-GCM full-file encryption with machine binding
 - **Secure Credential Storage** — Windows DPAPI encryption for passwords and keys
 - **Host Key Verification** — Protection against MITM attacks
 - **Encrypted Private Key Support** — Use passphrase-protected SSH keys
@@ -127,6 +128,8 @@ build.bat
 
 - **[Documentation Index](docs/README.md)** — All project documentation
 - **[Design System](docs/design-system.md)** — "Mission Control" UI design system (colors, typography, motion)
+- **[Binary Storage Encryption](docs/guides/binary-storage-encryption.md)** — User guide for encrypted storage
+- **[Security Considerations](docs/guides/security-considerations.md)** — Security architecture and threat model
 - **[UI Development Guide](docs/guides/ui-development.md)** — Building UI with the design system
 - **[Changelog](docs/planning/changelog.md)** — Complete project history
 - **[React Effect Stability Patterns](docs/guides/react-effect-stability.md)** — Effect-dependency patterns for the terminal and file manager
@@ -136,13 +139,17 @@ build.bat
 
 ## Security
 
-- **Credentials:** Encrypted with Windows DPAPI (CurrentUser scope)
+- **Machine-Bound Encryption:** AES-256-GCM full-file encryption with key derived from Windows Machine GUID + exe path
+- **No Separate Key File:** Only 2 files needed: `esesha.exe` + `esesha.bin` (no registry storage)
+- **Credentials:** SSH passwords encrypted with Windows DPAPI (CurrentUser scope)
 - **Host Keys:** SHA-256 fingerprint verification on first connection
 - **Private Keys:** Supports passphrase-protected keys
 - **Temp Files:** Created with 0600 permissions, random names
 - **Path Validation:** Protection against directory traversal attacks
 
-See [Known Issues & Technical Debt](docs/guides/known-issues.md) for open issues, and the [Documentation Index](docs/README.md) for all project docs.
+**Security Note:** Machine-bound encryption provides convenience (no extra files) but is weaker than DPAPI key file protection. Suitable for personal computers and casual protection. Not recommended for shared computers or highly sensitive credentials.
+
+See [Security Considerations](docs/guides/security-considerations.md) for full threat model.
 
 ---
 
@@ -150,10 +157,11 @@ See [Known Issues & Technical Debt](docs/guides/known-issues.md) for open issues
 
 - **Backend:** Go 1.21+ with `golang.org/x/crypto/ssh`
 - **Frontend:** React 18 + TypeScript 5 + Vite
-- **Framework:** Wails v2 (native window, no Chromium dependency)
-- **Database:** SQLite (pure Go, no CGo)
+- **Desktop Framework:** Wails v2
+- **Storage:** Encrypted binary format (AES-256-GCM) with machine-bound keyless encryption
 - **Terminal:** xterm.js
-- **Encryption:** Windows DPAPI
+- **Credential Encryption:** Windows DPAPI (CurrentUser scope)
+- **Registry Access:** `golang.org/x/sys/windows/registry` for Machine GUID derivation
 
 ---
 
@@ -165,7 +173,10 @@ esesha/
 │   ├── ssh/       # SSH client and session management
 │   ├── sftp/      # SFTP operations
 │   ├── crypto/    # Windows DPAPI encryption
-│   ├── db/        # SQLite connection store
+│   ├── db/        # Encrypted binary storage + connection management
+│   │   ├── store.go      # Storage layer with encryption
+│   │   ├── crypto.go     # AES-256-GCM encryption + machine key derivation
+│   │   └── *_test.go     # Unit and integration tests
 │   ├── editor/    # File editing and watching
 │   └── models/    # Data structures
 ├── frontend/      # React + TypeScript UI
@@ -173,7 +184,15 @@ esesha/
 ├── main.go        # Entry point
 ├── docs/          # Documentation
 └── build/         # Build output
+    └── bin/
+        ├── esesha.exe  # Application executable
+        └── esesha.bin  # Encrypted connections storage
 ```
+
+**Files at Runtime:**
+- `esesha.exe` — Application executable (~13-16 MB)
+- `esesha.bin` — Encrypted connections and host keys (binary format)
+- `esesha.bin.key.migrated` — Backup of old key file after migration (if upgrading from PRD-006)
 
 ---
 
