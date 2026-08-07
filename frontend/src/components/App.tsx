@@ -64,6 +64,18 @@ const App: React.FC = () => {
   };
 
   const selectConnection = (conn: models.Connection) => {
+    // Check if connection is already open in a session
+    const existingSessionIndex = sessions.findIndex(
+      session => session.connection.id === conn.id
+    );
+    
+    if (existingSessionIndex !== -1) {
+      // Connection already open, just switch to that tab
+      setActiveSessionIndex(existingSessionIndex);
+      setStatusText(`Switched to ${conn.name}`);
+      return;
+    }
+    
     // Check if connection uses encrypted private key
     if (conn.privateKeyPath) {
       setPassphrasePrompt({ connection: conn });
