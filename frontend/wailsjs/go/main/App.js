@@ -82,6 +82,10 @@ export function ListDirectory(arg1, arg2) {
   return window['go']['main']['App']['ListDirectory'](arg1, arg2);
 }
 
+export function PingConnection(arg1) {
+  return window['go']['main']['App']['PingConnection'](arg1);
+}
+
 export function ReadFile(arg1, arg2) {
   return window['go']['main']['App']['ReadFile'](arg1, arg2);
 }

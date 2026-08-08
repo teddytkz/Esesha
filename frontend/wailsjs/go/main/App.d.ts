@@ -43,6 +43,8 @@ export function ListConnections():Promise<Array<models.Connection>>;
 
 export function ListDirectory(arg1:string,arg2:string):Promise<Array<sftp.FileInfo>>;
 
+export function PingConnection(arg1:number):Promise<number>;
+
 export function ReadFile(arg1:string,arg2:string):Promise<string>;
 
 export function RenamePath(arg1:string,arg2:string,arg3:string):Promise<void>;

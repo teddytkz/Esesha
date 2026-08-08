@@ -10,6 +10,7 @@ import (
 	"esesha/internal/sftp"
 	"esesha/internal/ssh"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"time"
@@ -286,6 +287,25 @@ func (a *App) ConnectSSHWithPassphrase(connectionID int, keyPassphrase string, c
 	}
 
 	return sessionID, nil
+}
+
+// PingConnection measures TCP connection latency to the host in milliseconds
+func (a *App) PingConnection(connectionID int) (int64, error) {
+	conn, err := a.store.GetConnection(connectionID)
+	if err != nil {
+		return 0, err
+	}
+	if conn == nil {
+		return 0, fmt.Errorf("connection not found")
+	}
+
+	start := time.Now()
+	netConn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", conn.Host, conn.Port), 5*time.Second)
+	if err != nil {
+		return 0, fmt.Errorf("ping failed: %w", err)
+	}
+	netConn.Close()
+	return time.Since(start).Milliseconds(), nil
 }
 
 // SendInput sends input to SSH session

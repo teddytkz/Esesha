@@ -21,6 +21,7 @@ declare global {
           GetConnection(id: number): Promise<models.Connection>;
           GetDecryptedPassword(connectionId: number): Promise<string>;
           ListConnections(): Promise<models.Connection[]>;
+          PingConnection(connectionId: number): Promise<number>;
           ListDirectory(sessionId: string, path: string): Promise<sftp.FileInfo[]>;
           ReadFile(sessionId: string, remotePath: string): Promise<string>;
           RenamePath(sessionId: string, oldPath: string, newPath: string): Promise<void>;
