@@ -30,6 +30,7 @@ const App: React.FC = () => {
   const [activeSessionIndex, setActiveSessionIndex] = useState<number>(-1);
   const [statusText, setStatusText] = useState('Ready');
   const [pingMs, setPingMs] = useState<number | null>(null);
+  const [pingConnId, setPingConnId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [authType, setAuthType] = useState<'password' | 'key'>('password');
@@ -81,6 +82,19 @@ const App: React.FC = () => {
   useEffect(() => {
     loadConnections();
   }, []);
+
+  // Auto-refresh latency every second while connecting/connected
+  useEffect(() => {
+    if (pingConnId === null) return;
+    const ping = () => {
+      PingConnection(pingConnId)
+        .then(ms => setPingMs(ms))
+        .catch(() => {});
+    };
+    ping();
+    const t = setInterval(ping, 1000);
+    return () => clearInterval(t);
+  }, [pingConnId]);
 
   useEffect(() => {
     openMenuRef.current = openMenu;
@@ -151,11 +165,7 @@ const App: React.FC = () => {
     setSessions(prev => [...prev, pendingSession]);
     setActiveSessionIndex(sessions.length);
     setStatusText(`Connecting to ${conn.name}`);
-
-    // Show latency next to the connecting status
-    PingConnection(conn.id)
-      .then(ms => setPingMs(ms))
-      .catch(() => {});
+    setPingConnId(conn.id);
   };
 
   const handleEditConnection = (conn: models.Connection) => {
@@ -455,18 +465,14 @@ const App: React.FC = () => {
     
     const conn = connections.find(c => c.id === connectionId);
     setStatusText(`Connected to ${conn?.name || 'server'}`);
-
-    // Show latency next to the connected status
-    if (conn) {
-      PingConnection(conn.id)
-        .then(ms => setPingMs(ms))
-        .catch(() => {});
-    }
+    if (conn) setPingConnId(conn.id);
   }, [connections]);
 
   const handleDisconnect = useCallback((sid: string) => {
     const session = sessions.find(s => s.sessionId === sid);
     setStatusText(`Disconnected from ${session?.connection.name || 'server'}`);
+    setPingConnId(null);
+    setPingMs(null);
     
     setSessions(prev => prev.filter(s => s.sessionId !== sid));
     terminalRefs.current.delete(sid);
