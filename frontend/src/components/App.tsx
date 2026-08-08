@@ -92,7 +92,7 @@ const App: React.FC = () => {
         .catch(() => {});
     };
     ping();
-    const t = setInterval(ping, 1000);
+    const t = setInterval(ping, 5000);
     return () => clearInterval(t);
   }, [pingConnId]);
 
