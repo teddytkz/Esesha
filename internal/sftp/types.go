@@ -19,6 +19,7 @@ type TransferProgress struct {
 	BytesTotal   int64   `json:"bytesTotal"`
 	BytesCurrent int64   `json:"bytesCurrent"`
 	Percentage   float64 `json:"percentage"`
+	SpeedBytesPerSec int64 `json:"speedBytesPerSec"`
 	Completed    bool    `json:"completed"`
 	Error        string  `json:"error,omitempty"`
 }

@@ -2,7 +2,19 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Upload, RefreshCw, ArrowUp, Edit2, Trash2, FolderOpen, CheckCircle2, AlertTriangle, Info, ChevronRight } from 'lucide-react';
 import FileItem from './FileItem';
 import FileEditor from './FileEditor';
+import type { SFTPProgressEvent } from '../types/events';
 import styles from './FileExplorer.module.css';
+
+const formatSpeed = (bytesPerSec: number): string => {
+  const units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+  let v = bytesPerSec;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
+};
 
 interface FileInfo {
   name: string;
@@ -43,6 +55,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
   const [selectedItem, setSelectedItem] = useState<FileInfo | null>(null);
   const [selectedFileItem, setSelectedFileItem] = useState<FileInfo | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [transferSpeed, setTransferSpeed] = useState(0);
   const [uploadActive, setUploadActive] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -62,13 +75,15 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
       loadDirectory('/');
     }
 
-    const handleProgress = (data: { sessionId: string; percent: number }) => {
+    const handleProgress = (data: SFTPProgressEvent) => {
       if (data.sessionId === sessionId) {
-        setUploadProgress(data.percent || 0);
-        if (data.percent >= 100) {
+        setUploadProgress(data.percentage || 0);
+        setTransferSpeed(data.speedBytesPerSec || 0);
+        if (data.percentage >= 100) {
           setTimeout(() => {
             setUploadActive(false);
             setUploadProgress(0);
+            setTransferSpeed(0);
             loadDirectory(currentPathRef.current);
           }, 500);
         }
@@ -471,7 +486,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
       {uploadActive && (
         <div className={styles.progressBar}>
           <div className={styles.progressFill} style={{ width: `${uploadProgress}%` }}></div>
-          <span className={styles.progressText}>{uploadProgress}%</span>
+          <span className={styles.progressText}>
+            {uploadProgress}%{transferSpeed > 0 && <span className={styles.progressSpeed}> · {formatSpeed(transferSpeed)}</span>}
+          </span>
         </div>
       )}
 

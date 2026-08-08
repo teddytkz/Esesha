@@ -15,10 +15,14 @@ export type SSHClosedEvent = {
 
 export type SFTPProgressEvent = {
   sessionId: string;
-  fileName: string;
-  bytesTransferred: number;
-  totalBytes: number;
+  operation: string;
+  remotePath: string;
+  localPath: string;
+  bytesTotal: number;
+  bytesCurrent: number;
   percentage: number;
+  speedBytesPerSec: number;
+  completed: boolean;
 };
 
 export type EditorSavedEvent = {

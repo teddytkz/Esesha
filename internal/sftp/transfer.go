@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 )
 
 const chunkSize = 32 * 1024 // 32KB chunks
@@ -81,6 +82,7 @@ func (c *Client) UploadFileData(remotePath, base64Data string, onProgress func(T
 func (c *Client) copyWithProgress(dst io.Writer, src io.Reader, total int64, op, remotePath, localPath string, onProgress func(TransferProgress)) error {
 	buf := make([]byte, chunkSize)
 	var written int64
+	start := time.Now()
 
 	for {
 		nr, err := src.Read(buf)
@@ -105,6 +107,7 @@ func (c *Client) copyWithProgress(dst io.Writer, src io.Reader, total int64, op,
 					BytesTotal:   total,
 					BytesCurrent: written,
 					Percentage:   pct,
+					SpeedBytesPerSec: speed(written, start),
 					Completed:    false,
 				})
 			}
@@ -126,9 +129,19 @@ func (c *Client) copyWithProgress(dst io.Writer, src io.Reader, total int64, op,
 			BytesTotal:   total,
 			BytesCurrent: written,
 			Percentage:   100,
+			SpeedBytesPerSec: speed(written, start),
 			Completed:    true,
 		})
 	}
 
 	return nil
+}
+
+// speed returns average bytes-per-second since start
+func speed(written int64, start time.Time) int64 {
+	elapsed := time.Since(start).Seconds()
+	if elapsed <= 0 {
+		return 0
+	}
+	return int64(float64(written) / elapsed)
 }
