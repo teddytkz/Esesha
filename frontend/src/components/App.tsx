@@ -364,6 +364,8 @@ const App: React.FC = () => {
     setImportError('');
     setImportSuccess('');
 
+    let success = false;
+
     try {
       const text = await importFile.text();
       const data = JSON.parse(text);
@@ -437,6 +439,7 @@ const App: React.FC = () => {
       }
 
       if (imported > 0) {
+        success = true;
         setImportSuccess(`Successfully imported ${imported} connection(s)${failed > 0 ? `, ${failed} failed` : ''}`);
         await loadConnections();
         setTimeout(() => {
@@ -452,8 +455,12 @@ const App: React.FC = () => {
         setImportError(`Error reading file: ${err}`);
       }
     }
-    importingRef.current = false;
-    setImporting(false);
+
+    // Stay disabled until modal closes after successful import (1.5s), so the button can't be double-clicked
+    if (!success) {
+      importingRef.current = false;
+      setImporting(false);
+    }
   };
 
   const handleConnect = useCallback((sid: string, connectionId: number) => {
