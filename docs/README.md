@@ -12,6 +12,24 @@ Index of all project documentation. Start here.
 | ----- | -------------- |
 | [PPK to PEM Converter](guides/ppk-converter.md) | Converting PuTTY `.ppk` keys to OpenSSH `.pem` via **Tools → PPK Formatter** — pure-Go, no PuTTY needed, cross-platform |
 
+## Build
+
+| Document | What it covers |
+| -------- | -------------- |
+| _(none)_ | |
+
+## Security
+
+| Document | What it covers |
+| -------- | -------------- |
+| _(none)_ | |
+
+## API
+
+| Document | What it covers |
+| -------- | -------------- |
+| _(none)_ | |
+
 ## Design
 
 | Document | What it covers |
@@ -28,6 +46,12 @@ Index of all project documentation. Start here.
 | [PRD-008 Checklist](planning/PRD-008-CHECKLIST.md) | Task-level implementation checklist |
 | [PRD-008 Implementation Summary](planning/PRD-008-IMPLEMENTATION-SUMMARY.md) | Quick reference for the PPK converter build |
 | [PRD-009 Implementation Complete](planning/PRD-009-IMPLEMENTATION-COMPLETE.md) | Pure-Go PPK parser — removed puttygen.exe dependency |
+
+## Archived
+
+| Document | What it covers |
+| -------- | -------------- |
+| [PRD-010: Embedded SSH Keys (Archived)](planning/archive/prd-010-embedded-ssh-keys.md) | Original PRD, implementation summary, orchestrator handoff, and checklist — **feature removed/rolled back 2026-08-14**, kept for historical reference only |
 
 ---
 

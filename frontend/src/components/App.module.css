@@ -1279,6 +1279,38 @@
   outline-offset: 2px;
 }
 
+.selectInput {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: pointer;
+}
+
+.selectInput:focus {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.selectInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.helperText {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
 /* ═══ Session tabs ═══ */
 .sessionTabs {
   display: flex;

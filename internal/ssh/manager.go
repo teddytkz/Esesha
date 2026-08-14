@@ -57,7 +57,7 @@ func (m *Manager) Connect(host string, port int, username, password, privateKeyP
 	return m.ConnectWithPassphrase(host, port, username, password, privateKeyPath, "", cols, rows)
 }
 
-// ConnectWithPassphrase establishes SSH connection with optional key passphrase
+// ConnectWithPassphrase establishes SSH connection with optional key passphrase.
 func (m *Manager) ConnectWithPassphrase(host string, port int, username, password, privateKeyPath, keyPassphrase string, cols, rows int) (string, error) {
 	var client *Client
 	var err error

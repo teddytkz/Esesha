@@ -34,7 +34,7 @@ const App: React.FC = () => {
   const [pingConnId, setPingConnId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [authType, setAuthType] = useState<'password' | 'key'>('password');
+  const [authMethod, setAuthMethod] = useState<'password' | 'key'>('password');
   const [newConn, setNewConn] = useState<NewConnection>({
     name: '',
     host: '',
@@ -59,7 +59,6 @@ const App: React.FC = () => {
     password: '',
     privateKeyPath: ''
   });
-  const [editAuthType, setEditAuthType] = useState<'password' | 'key'>('password');
   const [editFormError, setEditFormError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<models.Connection | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -152,7 +151,7 @@ const App: React.FC = () => {
       return;
     }
     
-    // Check if connection uses encrypted private key
+    // Check if connection uses an encrypted private key (file or embedded)
     if (conn.privateKeyPath) {
       setPassphrasePrompt({ connection: conn });
     } else {
@@ -185,7 +184,6 @@ const App: React.FC = () => {
       password: '',
       privateKeyPath: conn.privateKeyPath || ''
     });
-    setEditAuthType(conn.privateKeyPath ? 'key' : 'password');
     setIsEditModalOpen(true);
   };
 
@@ -200,7 +198,6 @@ const App: React.FC = () => {
       password: '',
       privateKeyPath: ''
     });
-    setEditAuthType('password');
     setEditFormError('');
   };
 
@@ -548,7 +545,7 @@ const App: React.FC = () => {
       password: '',
       privateKeyPath: ''
     });
-    setAuthType('password');
+    setAuthMethod('password');
   };
 
   const closeAddForm = () => {
@@ -575,19 +572,14 @@ const App: React.FC = () => {
       return;
     }
     
-    if (authType === 'password' && !newConn.password) {
-      setFormError('Password is required');
-      return;
-    }
-    
-    if (authType === 'key' && !newConn.privateKeyPath) {
+    if (authMethod === 'key' && !newConn.privateKeyPath) {
       setFormError('Private Key Path is required');
       return;
     }
 
     try {
-      const pwd = authType === 'password' ? newConn.password : '';
-      const keyPath = authType === 'key' ? newConn.privateKeyPath : '';
+      const pwd = newConn.password;
+      const keyPath = authMethod === 'key' ? newConn.privateKeyPath : '';
       await CreateConnection(newConn.name, newConn.host, newConn.port, newConn.username, pwd, keyPath);
       setFormSuccess('Connection saved');
       setTimeout(() => {
@@ -955,35 +947,38 @@ const App: React.FC = () => {
                 />
               </div>
               <div className={styles.formGroup}>
-                <label>Authentication</label>
-                <div className={styles.authToggle} role="group" aria-label="Authentication type">
+                <label>Authentication Method</label>
+                <div className={styles.authToggle} role="group" aria-label="Authentication method">
                   <button
                     type="button"
-                    className={`${styles.authToggleBtn} ${authType === 'password' ? styles.authToggleBtnActive : ''}`}
-                    onClick={() => setAuthType('password')}
-                    aria-pressed={authType === 'password'}
+                    className={`${styles.authToggleBtn} ${authMethod === 'password' ? styles.authToggleBtnActive : ''}`}
+                    onClick={() => setAuthMethod('password')}
+                    aria-pressed={authMethod === 'password'}
                   >
                     Password
                   </button>
                   <button
                     type="button"
-                    className={`${styles.authToggleBtn} ${authType === 'key' ? styles.authToggleBtnActive : ''}`}
-                    onClick={() => setAuthType('key')}
-                    aria-pressed={authType === 'key'}
+                    className={`${styles.authToggleBtn} ${authMethod === 'key' ? styles.authToggleBtnActive : ''}`}
+                    onClick={() => setAuthMethod('key')}
+                    aria-pressed={authMethod === 'key'}
                   >
-                    Private Key
+                    Private Key File
                   </button>
                 </div>
               </div>
-              {authType === 'password' ? (
+              {authMethod === 'password' ? (
                 <div className={styles.formGroup}>
-                  <label htmlFor="conn-auth-password">Password</label>
+                  <label htmlFor="conn-password">Password</label>
                   <input 
-                    id="conn-auth-password"
+                    id="conn-password"
                     type="password" 
                     value={newConn.password}
                     onChange={(e) => setNewConn({...newConn, password: e.target.value})}
+                    placeholder="Optional (leave blank for key-based auth)" 
+                    autoComplete="new-password"
                   />
+                  <p className={styles.helperText}>For password authentication. Leave blank if using key-based authentication.</p>
                 </div>
               ) : (
                 <div className={styles.formGroup}>
@@ -1085,65 +1080,37 @@ const App: React.FC = () => {
                 />
               </div>
               <div className={styles.formGroup}>
-                <label>Authentication</label>
-                <div className={styles.authToggle} role="group" aria-label="Authentication type">
-                  <button
-                    type="button"
-                    className={`${styles.authToggleBtn} ${editAuthType === 'password' ? styles.authToggleBtnActive : ''}`}
-                    onClick={() => {
-                      setEditAuthType('password');
-                      setEditFormData({...editFormData, privateKeyPath: ''});
-                    }}
-                    aria-pressed={editAuthType === 'password'}
+                <label htmlFor="edit-conn-password">Password</label>
+                <input 
+                  id="edit-conn-password"
+                  type="password" 
+                  value={editFormData.password}
+                  onChange={(e) => setEditFormData({...editFormData, password: e.target.value})}
+                  placeholder="Leave blank to keep current password" 
+                  autoComplete="new-password"
+                />
+                <p className={styles.helperText}>For password authentication. Leave blank to keep the existing password unchanged.</p>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="edit-conn-auth-privatekey">Private Key Path</label>
+                <div className={styles.fileInputGroup}>
+                  <input 
+                    id="edit-conn-auth-privatekey"
+                    type="text" 
+                    value={editFormData.privateKeyPath}
+                    onChange={(e) => setEditFormData({...editFormData, privateKeyPath: e.target.value})}
+                    placeholder="C:\Users\user\.ssh\id_rsa" 
+                  />
+                  <button 
+                    type="button" 
+                    className={styles.btnBrowse}
+                    onClick={selectEditPrivateKeyFile}
+                    aria-label="Browse for private key file"
                   >
-                    Password
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.authToggleBtn} ${editAuthType === 'key' ? styles.authToggleBtnActive : ''}`}
-                    onClick={() => {
-                      setEditAuthType('key');
-                      setEditFormData({...editFormData, password: ''});
-                    }}
-                    aria-pressed={editAuthType === 'key'}
-                  >
-                    Private Key
+                    <FolderOpen size={16} aria-hidden="true" />
                   </button>
                 </div>
               </div>
-              {editAuthType === 'password' ? (
-                <div className={styles.formGroup}>
-                  <label htmlFor="edit-conn-auth-password">Password</label>
-                  <input 
-                    id="edit-conn-auth-password"
-                    type="password" 
-                    value={editFormData.password}
-                    onChange={(e) => setEditFormData({...editFormData, password: e.target.value})}
-                    placeholder="Leave empty to keep current password"
-                  />
-                </div>
-              ) : (
-                <div className={styles.formGroup}>
-                  <label htmlFor="edit-conn-auth-privatekey">Private Key Path</label>
-                  <div className={styles.fileInputGroup}>
-                    <input 
-                      id="edit-conn-auth-privatekey"
-                      type="text" 
-                      value={editFormData.privateKeyPath}
-                      onChange={(e) => setEditFormData({...editFormData, privateKeyPath: e.target.value})}
-                      placeholder="C:\Users\user\.ssh\id_rsa" 
-                    />
-                    <button 
-                      type="button" 
-                      className={styles.btnBrowse}
-                      onClick={selectEditPrivateKeyFile}
-                      aria-label="Browse for private key file"
-                    >
-                      <FolderOpen size={16} aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-              )}
               {editFormError && (
                 <div className={`${styles.formMessage} ${styles.error}`} role="alert">{editFormError}</div>
               )}

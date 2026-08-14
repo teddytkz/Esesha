@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- [2026-08-14] **PRD-010: Embedded SSH Keys (Rolled Back)** — REMOVED ✅
+  - **Reason:** User preference for simpler authentication model — keep only password and file-based key authentication
+  - **Removed embedded SSH keys feature** — private keys no longer baked into the binary at build time
+  - **Reverted to password and file-based authentication only** — `Connection.EmbeddedKeyID` field, `internal/keys/` package, `build-keys.json` build flow, and frontend "Embedded Key" auth UI all removed
+  - **All backend/frontend code removed** — `internal/keys/store.go`, `internal/keys/embedded.go`, `scripts/build-keys.ps1`, `build-keys.json.example`, `internal/keys/embedded.go.template` deleted; `internal/models/connection.go`, `internal/ssh/client.go`, `internal/ssh/manager.go`, `app.go`, `build.bat`, `frontend/src/components/App.tsx`, `frontend/src/types/wails.d.ts` reverted
+  - **Documentation archived** — user-facing docs (`docs/user-guide/embedded-keys.md`, `docs/build/embedded-keys-build.md`, `docs/security/embedded-keys-security.md`, `docs/api/embedded-keys-api.md`) deleted; PRD-010 planning docs moved to `docs/planning/archive/`
+  - **Rollback plan retained** — `docs/planning/rollback-010-remove-embedded-keys.md` and `ROLLBACK-010-*` docs kept for reference
+  - **See:** `docs/planning/archive/prd-010-embedded-ssh-keys.md` (original PRD), `docs/planning/ROLLBACK-010-COMPLETE.md` (rollback summary)
+
+### Planned
+- [2026-08-14] **ROLLBACK: PRD-010 Embedded SSH Keys Feature** — ROLLBACK PLANNED
+  - **User request:** "Remove embedded key feature completely. Keep only password and file path authentication methods."
+  - **Status:** Rollback plan created, awaiting execution approval
+  - **See:** `docs/planning/rollback-010-remove-embedded-keys.md` (full rollback plan), `docs/planning/ROLLBACK-010-EXECUTION-CHECKLIST.md` (execution checklist), `docs/planning/ROLLBACK-010-IMPLEMENTATION-SUMMARY.md` (quick reference)
+
+- [2026-08-14] **PRD-010: Embedded SSH Private Keys in Binary** — REMOVED / ROLLED BACK (see Removed entry above)
+  - **User request:** "SSH private key content should be embedded in the binary; No dependency on external credential files for private keys; Private key stored directly in the compiled binary"
+  - **Scope:** Major architectural change — embed SSH private key content directly into `esesha.exe` instead of reading from external files; build-time encryption with machine-bound key; multi-key support with unique IDs; frontend dropdown for key selection; maintains backward compatibility with file-based keys
+  - **Goal:** Single-file deployment with embedded credentials; eliminate file system dependencies for private keys; simplify automation scripts
+  - **Architecture:** Build-time configuration (`build-keys.json`) → PowerShell script encrypts keys → generates `internal/keys/embedded.go` → compiled into binary → runtime decryption with machine-bound key
+  - **Encryption:** AES-256-GCM with machine-bound key derivation (same as `esesha.bin`); keys stored as base64-encoded ciphertext in Go source
+  - **Data model:** New `Connection.EmbeddedKeyID *string` field (nullable, mutually exclusive with `PrivateKeyPath`)
+  - **Frontend:** New "Embedded Key" auth type radio + dropdown (shows key descriptions); conditionally shown only if embedded keys exist
+  - **Backward compatibility:** 100% — existing file-based keys continue working; build without `build-keys.json` → empty embedded store
+  - **Security:** Protected against casual inspection, file system exposure, accidental deletion; NOT protected against system admin access, memory dumps, skilled attackers; recommended for personal use only, not production servers in untrusted environments
+  - **Build integration:** `build.bat` runs `scripts/build-keys.ps1` before `wails build` (skips if `build-keys.json` missing)
+  - **Files created:** `scripts/build-keys.ps1`, `internal/keys/store.go`, `internal/keys/embedded.go.template`, `build-keys.json.example`, `docs/guides/embedded-ssh-keys.md` (8 new files)
+  - **Files modified:** `internal/models/connection.go`, `internal/ssh/client.go`, `internal/ssh/manager.go`, `app.go`, `.gitignore`, `build.bat`, `frontend/src/components/App.tsx`, `frontend/src/types/wails.d.ts` (8+ modified)
+  - **Estimated effort:** 20-27 hours (6 phases: Build Infrastructure → Backend Store → SSH Integration → Frontend UI → Testing → Security Audit)
+  - **Risk mitigation:** `.gitignore` excludes real keys; document security trade-offs; provide rollback strategy
+  - **See:** `docs/planning/prd-010-embedded-ssh-keys.md` (full PRD, 1000+ lines), `docs/planning/PRD-010-IMPLEMENTATION-SUMMARY.md` (quick reference)
+
 ### Changed
 - [2026-08-14] **PRD-009: Pure Go PPK Parser (Remove puttygen.exe Dependency)** — COMPLETE ✅
   - **User request (Indonesian):** "saya tidak install putty, bisa engga kalo tanpa install putty"

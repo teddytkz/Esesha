@@ -24,7 +24,7 @@ func NewClient(host string, port int, username, password string) (*Client, error
 // NewClientWithHostKeyCallback creates SSH client with custom host key callback
 func NewClientWithHostKeyCallback(host string, port int, username, password, privateKeyPath string, hostKeyCallback ssh.HostKeyCallback) (*Client, error) {
 	var authMethods []ssh.AuthMethod
-	
+
 	if privateKeyPath != "" {
 		key, err := ioutil.ReadFile(privateKeyPath)
 		if err != nil {
@@ -65,8 +65,12 @@ func NewClientWithKeyAndPassphrase(host string, port int, username, privateKeyPa
 	return NewClientWithKeyPassphraseAndHostKey(host, port, username, privateKeyPath, passphrase, ssh.InsecureIgnoreHostKey())
 }
 
-// NewClientWithKeyPassphraseAndHostKey creates SSH client with all options
+// NewClientWithKeyPassphraseAndHostKey creates SSH client with all options.
 func NewClientWithKeyPassphraseAndHostKey(host string, port int, username, privateKeyPath, passphrase string, hostKeyCallback ssh.HostKeyCallback) (*Client, error) {
+	if privateKeyPath == "" {
+		return nil, fmt.Errorf("no private key specified")
+	}
+
 	key, err := ioutil.ReadFile(privateKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("read private key failed: %w", err)
