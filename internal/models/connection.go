@@ -1,14 +1,14 @@
 package models
 
 type Connection struct {
-	ID                int    `json:"id"`
-	Name              string `json:"name"`
-	Host              string `json:"host"`
-	Port              int    `json:"port"`
-	Username          string `json:"username"`
+	ID                  int    `json:"id"`
+	Name                string `json:"name"`
+	Host                string `json:"host"`
+	Port                int    `json:"port"`
+	Username            string `json:"username"`
 	EncryptedPassword   []byte `json:"encrypted_password"`
-	PrivateKeyPath      string `json:"privateKeyPath"`         // Deprecated: kept for backward compatibility
-	EncryptedPrivateKey []byte `json:"encrypted_private_key"`  // New: stores encrypted PEM content
+	PrivateKeyPath      string `json:"privateKeyPath"`        // Deprecated: kept for backward compatibility
+	EncryptedPrivateKey []byte `json:"encrypted_private_key"` // New: stores encrypted PEM content
 	CreatedAt           int64  `json:"createdAt"`
-	UpdatedAt         int64  `json:"updatedAt"`
+	UpdatedAt           int64  `json:"updatedAt"`
 }

@@ -394,8 +394,8 @@ func TestExportImportEncryptedPrivateKey(t *testing.T) {
 
 	// Import into a fresh store
 	importStore := &Store{
-		filePath:   filepath.Join(tmpDir, "import.bin"),
-		encryptKey: key,
+		filePath:    filepath.Join(tmpDir, "import.bin"),
+		encryptKey:  key,
 		connections: []*models.Connection{},
 		hostKeys:    []HostKey{},
 		nextID:      1,

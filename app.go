@@ -10,12 +10,13 @@ import (
 	"esesha/internal/models"
 	"esesha/internal/sftp"
 	"esesha/internal/ssh"
-	cryptossh "golang.org/x/crypto/ssh"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"time"
+
+	cryptossh "golang.org/x/crypto/ssh"
 
 	"github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
@@ -141,12 +142,12 @@ func (a *App) CreateConnection(name, host string, port int, username, password, 
 	}
 
 	conn := &models.Connection{
-		Name:               name,
-		Host:               host,
-		Port:               port,
-		Username:           username,
-		EncryptedPassword:  encryptedPassword,
-		PrivateKeyPath:     privateKeyPath,
+		Name:                name,
+		Host:                host,
+		Port:                port,
+		Username:            username,
+		EncryptedPassword:   encryptedPassword,
+		PrivateKeyPath:      privateKeyPath,
 		EncryptedPrivateKey: encryptedPrivateKey,
 	}
 
