@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"esesha/internal/converter"
 	"esesha/internal/crypto"
 	"esesha/internal/db"
 	"esesha/internal/editor"
@@ -240,11 +241,29 @@ func (a *App) SelectPrivateKeyFile() (string, error) {
 	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Select Private Key File",
 		Filters: []runtime.FileFilter{
-			{DisplayName: "Private Key Files", Pattern: "*.pem;*.key;id_rsa;id_ecdsa;id_ed25519"},
+			{DisplayName: "Private Key Files", Pattern: "*.pem;*.key;*.ppk;id_rsa;id_ecdsa;id_ed25519"},
 			{DisplayName: "All Files", Pattern: "*"},
 		},
 	})
 	return filePath, err
+}
+
+// SelectPEMOutputFile opens a file save dialog for PEM output
+func (a *App) SelectPEMOutputFile(defaultFilename string) (string, error) {
+	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           "Save PEM File",
+		DefaultFilename: defaultFilename,
+		Filters: []runtime.FileFilter{
+			{DisplayName: "PEM Files", Pattern: "*.pem"},
+			{DisplayName: "All Files", Pattern: "*"},
+		},
+	})
+	return filePath, err
+}
+
+// ConvertPPKToPEM converts a PuTTY .ppk file to OpenSSH PEM format
+func (a *App) ConvertPPKToPEM(ppkPath, pemPath, passphrase string) error {
+	return converter.ConvertPPKToPEM(ppkPath, pemPath, passphrase)
 }
 
 // ConnectSSH establishes SSH connection and starts PTY session

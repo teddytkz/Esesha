@@ -3,6 +3,7 @@ module esesha
 go 1.25.0
 
 require (
+	github.com/edutko/putty-go v0.1.0
 	github.com/go-ole/go-ole v1.3.0
 	github.com/google/uuid v1.6.0
 	github.com/pkg/sftp v1.13.11

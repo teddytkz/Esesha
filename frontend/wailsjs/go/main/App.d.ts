@@ -11,6 +11,8 @@ export function ConnectSSH(arg1:number,arg2:number,arg3:number):Promise<string>;
 
 export function ConnectSSHWithPassphrase(arg1:number,arg2:string,arg3:number,arg4:number):Promise<string>;
 
+export function ConvertPPKToPEM(arg1:string,arg2:string,arg3:string):Promise<void>;
+
 export function CreateConnection(arg1:string,arg2:string,arg3:number,arg4:string,arg5:string,arg6:string):Promise<number>;
 
 export function CreateDesktopShortcut():Promise<void>;
@@ -52,6 +54,8 @@ export function RenamePath(arg1:string,arg2:string,arg3:string):Promise<void>;
 export function ResizeTerminal(arg1:string,arg2:number,arg3:number):Promise<void>;
 
 export function RestoreConnections():Promise<void>;
+
+export function SelectPEMOutputFile(arg1:string):Promise<string>;
 
 export function SelectPrivateKeyFile():Promise<string>;
 

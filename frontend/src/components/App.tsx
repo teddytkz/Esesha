@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Plus, RefreshCw, Server, ServerOff, X, CheckCircle2, FolderOpen, MoreVertical, Edit, Trash2, Upload, Download, LogOut, Info, MonitorDown, ChevronRight } from 'lucide-react';
+import { Plus, RefreshCw, Server, ServerOff, X, CheckCircle2, FolderOpen, MoreVertical, Edit, Trash2, Upload, Download, LogOut, Info, MonitorDown, ChevronRight, Wrench } from 'lucide-react';
 import { ListConnections, CreateConnection, SelectPrivateKeyFile, UpdateConnection, DeleteConnection, ImportConnectionFromBackup, BackupConnections, CreateDesktopShortcut, GetAboutInfo, PingConnection } from '@wailsjs/go/main/App';
 import { models } from '@wailsjs/go/models';
-import { Quit } from '@wailsjs/runtime/runtime';
+import { Quit, EventsOn } from '@wailsjs/runtime/runtime';
 import Terminal from './Terminal';
 import FileExplorer from './FileExplorer';
 import PassphraseDialog from './PassphraseDialog';
+import PPKConverterDialog from './PPKConverterDialog';
 import styles from './App.module.css';
 
 interface NewConnection {
@@ -70,17 +71,23 @@ const App: React.FC = () => {
   const [backupPath, setBackupPath] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [openMenu, setOpenMenu] = useState<'' | 'file' | 'help'>('');
+  const [openMenu, setOpenMenu] = useState<'' | 'file' | 'tools' | 'help'>('');
   const [openSubmenu, setOpenSubmenu] = useState<'' | 'connection'>('');
   const [aboutInfo, setAboutInfo] = useState<Record<string, string> | null>(null);
+  const [showPPKConverter, setShowPPKConverter] = useState(false);
   const menuBarRef = useRef<HTMLDivElement>(null);
-  const openMenuRef = useRef<'' | 'file' | 'help'>('');
+  const openMenuRef = useRef<'' | 'file' | 'tools' | 'help'>('');
 
   const terminalRefs = useRef<Map<string, { disconnect: () => void; clear: () => void }>>(new Map());
   const openMenuIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     loadConnections();
+  }, []);
+
+  useEffect(() => {
+    const off = EventsOn('menu:ppk-converter', () => setShowPPKConverter(true));
+    return () => off();
   }, []);
 
   // Auto-refresh latency every second while connecting/connected
@@ -263,7 +270,7 @@ const App: React.FC = () => {
     setDeleteConfirm(null);
   };
 
-  const toggleMenu = (menu: '' | 'file' | 'help') => {
+  const toggleMenu = (menu: '' | 'file' | 'tools' | 'help') => {
     setOpenSubmenu('');
     setOpenMenu(prev => (prev === menu ? '' : menu));
   };
@@ -641,6 +648,25 @@ const App: React.FC = () => {
               <button type="button" className={styles.dropdownItem} role="menuitem" onClick={handleQuit}>
                 <LogOut size={14} />
                 Exit
+              </button>
+            </div>
+          )}
+        </div>
+        <div className={styles.menuGroup}>
+          <button
+            type="button"
+            className={`${styles.menuItem} ${openMenu === 'tools' ? styles.menuItemOpen : ''}`}
+            onClick={() => toggleMenu('tools')}
+            aria-haspopup="true"
+            aria-expanded={openMenu === 'tools'}
+          >
+            Tools
+          </button>
+          {openMenu === 'tools' && (
+            <div className={styles.menuDropdown} role="menu" aria-label="Tools menu">
+              <button type="button" className={styles.dropdownItem} role="menuitem" onClick={() => { setOpenMenu(''); setShowPPKConverter(true); }}>
+                <Wrench size={14} />
+                PPK Formatter
               </button>
             </div>
           )}
@@ -1283,6 +1309,10 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showPPKConverter && (
+        <PPKConverterDialog onClose={() => setShowPPKConverter(false)} />
       )}
     </main>
   );

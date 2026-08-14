@@ -18,6 +18,10 @@ export function ConnectSSHWithPassphrase(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ConnectSSHWithPassphrase'](arg1, arg2, arg3, arg4);
 }
 
+export function ConvertPPKToPEM(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ConvertPPKToPEM'](arg1, arg2, arg3);
+}
+
 export function CreateConnection(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['main']['App']['CreateConnection'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
@@ -100,6 +104,10 @@ export function ResizeTerminal(arg1, arg2, arg3) {
 
 export function RestoreConnections() {
   return window['go']['main']['App']['RestoreConnections']();
+}
+
+export function SelectPEMOutputFile(arg1) {
+  return window['go']['main']['App']['SelectPEMOutputFile'](arg1);
 }
 
 export function SelectPrivateKeyFile() {

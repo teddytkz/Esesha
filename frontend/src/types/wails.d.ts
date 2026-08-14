@@ -31,6 +31,8 @@ declare global {
           UploadFile(sessionId: string, localPath: string, remotePath: string): Promise<void>;
           UploadFileData(sessionId: string, fileName: string, remotePath: string): Promise<void>;
           WriteFile(sessionId: string, remotePath: string, base64Data: string): Promise<void>;
+          ConvertPPKToPEM(ppkPath: string, pemPath: string, passphrase: string): Promise<void>;
+          SelectPEMOutputFile(defaultFilename: string): Promise<string>;
         };
       };
     };

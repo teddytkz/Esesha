@@ -1,11 +1,11 @@
 # Esesha
 
-**Modern SSH/SFTP Desktop Manager for Windows**
+**Modern SSH/SFTP Desktop Manager (Windows, macOS, Linux)**
 
 Esesha is a lightweight, single-executable SSH connection manager with integrated terminal emulation and SFTP file browser. Think Termius meets WinSCP, built for speed and security.
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
@@ -16,7 +16,7 @@ Esesha's UI is a futuristic **"Mission Control"** console — deep space-navy su
 
 > **Screenshots coming soon.** Placeholder for the redesigned UI: sidebar with connection cards and scanline texture · animated status bar · empty states · loading skeletons.
 
-_Design system reference: [docs/design-system.md](docs/design-system.md)_
+_Design system reference: [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md)_
 
 ---
 
@@ -27,7 +27,8 @@ _Design system reference: [docs/design-system.md](docs/design-system.md)_
 - **SFTP File Browser** — Browse, upload, download, edit remote files
 - **System Editor Integration** — Edit remote files with your favorite local editor
 - **Multi-Session Support** — Connect to multiple servers simultaneously
-- **Native Menu System** — File and Help menus with keyboard shortcuts (Ctrl+Q to exit)
+- **Native Menu System** — File, Tools, and Help menus with keyboard shortcuts (Ctrl+Q to exit)
+- **PPK to PEM Converter** — Convert PuTTY `.ppk` keys to OpenSSH `.pem` from **Tools → PPK Formatter**, without external dependencies (pure-Go, cross-platform)
 - **Desktop Shortcut Creation** — Create shortcuts from File menu at runtime
 - **Professional Icon System** — SVG icons with full accessibility support
 - **Polished UI** — Smooth animations, hover effects, consistent spacing
@@ -50,10 +51,11 @@ _Design system reference: [docs/design-system.md](docs/design-system.md)_
 
 ### System Requirements
 
-- **OS:** Windows 10 (1809+) or Windows 11
+- **OS:** Windows 10 (1809+) or Windows 11, macOS, or Linux
 - **Architecture:** x64
 - **RAM:** 100 MB minimum
 - **Storage:** 50 MB for application and database
+- **No external dependencies required** — the PPK to PEM converter is pure-Go and needs no PuTTY installation
 
 ---
 
@@ -89,6 +91,16 @@ _Design system reference: [docs/design-system.md](docs/design-system.md)_
    - **Delete** — Remove file or directory
    - **Rename** — Change name
    - **Permissions** — Change chmod
+
+### Converting a PuTTY Key (.ppk → .pem)
+
+1. Click **Tools → PPK Formatter**
+2. **Select PPK File** — choose your PuTTY private key
+3. Enter the **passphrase** (leave blank if the key is unencrypted)
+4. **Select Output** — the `.pem` filename is suggested automatically
+5. Click **Convert**, then use the `.pem` as a Private Key in any connection
+
+No PuTTY installation needed. See [PPK to PEM Converter](docs/guides/ppk-converter.md).
 
 ---
 
@@ -127,13 +139,9 @@ build.bat
 ## Documentation
 
 - **[Documentation Index](docs/README.md)** — All project documentation
-- **[Design System](docs/design-system.md)** — "Mission Control" UI design system (colors, typography, motion)
-- **[Binary Storage Encryption](docs/guides/binary-storage-encryption.md)** — User guide for encrypted storage
-- **[Security Considerations](docs/guides/security-considerations.md)** — Security architecture and threat model
-- **[UI Development Guide](docs/guides/ui-development.md)** — Building UI with the design system
+- **[Design System](docs/DESIGN-SYSTEM.md)** — "Mission Control" UI design system (colors, typography, motion)
+- **[PPK to PEM Converter](docs/guides/ppk-converter.md)** — Converting PuTTY keys to OpenSSH format
 - **[Changelog](docs/planning/changelog.md)** — Complete project history
-- **[React Effect Stability Patterns](docs/guides/react-effect-stability.md)** — Effect-dependency patterns for the terminal and file manager
-- **[Known Issues & Technical Debt](docs/guides/known-issues.md)** — Open issues and deferred work
 
 ---
 
@@ -147,9 +155,9 @@ build.bat
 - **Temp Files:** Created with 0600 permissions, random names
 - **Path Validation:** Protection against directory traversal attacks
 
-**Security Note:** Machine-bound encryption provides convenience (no extra files) but is weaker than DPAPI key file protection. Suitable for personal computers and casual protection. Not recommended for shared computers or highly sensitive credentials.
+- **Converted Keys:** PEM files produced by the PPK converter are written with 0600 permissions; passphrases are never logged
 
-See [Security Considerations](docs/guides/security-considerations.md) for full threat model.
+**Security Note:** Machine-bound encryption provides convenience (no extra files) but is weaker than DPAPI key file protection. Suitable for personal computers and casual protection. Not recommended for shared computers or highly sensitive credentials.
 
 ---
 
@@ -177,6 +185,7 @@ esesha/
 │   │   ├── store.go      # Storage layer with encryption
 │   │   ├── crypto.go     # AES-256-GCM encryption + machine key derivation
 │   │   └── *_test.go     # Unit and integration tests
+│   ├── converter/ # PPK → PEM key conversion (pure-Go, no puttygen.exe)
 │   ├── editor/    # File editing and watching
 │   └── models/    # Data structures
 ├── frontend/      # React + TypeScript UI

@@ -7,10 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
-- None
+### Changed
+- [2026-08-14] **PRD-009: Pure Go PPK Parser (Remove puttygen.exe Dependency)** — COMPLETE ✅
+  - **User request (Indonesian):** "saya tidak install putty, bisa engga kalo tanpa install putty"
+  - **Translation:** "I don't have PuTTY installed, can we do it without installing PuTTY?"
+  - **Status:** Implemented and verified — 9/9 tests passing. PuTTY is no longer required for the PPK converter.
+  - **Scope:** Replaced external `puttygen.exe` dependency with pure Go library (`github.com/edutko/putty-go`); eliminates PuTTY installation requirement; improves security (passphrase not in command line); faster conversion (in-memory vs process spawn)
+  - **API preservation:** `ConvertPPKToPEM(ppkPath, pemPath, passphrase string) error` signature unchanged — internal implementation only
+  - **Format support:** PPK v2 and v3 (encrypted/unencrypted), all key types (RSA, ECDSA P-256/P-384/P-521, Ed25519)
+  - **Security improvements:** Passphrase handled in-memory (not visible in process list), MAC verification for key integrity, same 0600 PEM output permissions
+  - **Performance:** < 500ms conversion time (vs 1-2s with puttygen.exe process spawn)
+  - **Library:** `github.com/edutko/putty-go` (Apache-2.0, 70+ test cases, supports PPK v2/v3 with Argon2i/id and AES-256-CBC encryption)
+  - **Tradeoffs accepted:** Low GitHub adoption (0 stars) but high code quality; unmaintained 3 years (PPK format stable since 2021); can vendor/fork if needed
+  - **Testing:** Comprehensive test suite added (9 tests: invalid format, file not found, unencrypted RSA, encrypted RSA, unencrypted ECDSA, Ed25519, wrong passphrase, PPK v3, PPK v2) — all pass on any platform
+  - **Files modified:** `go.mod` (add dependency), `internal/converter/ppk.go` (complete rewrite ~120 lines), `internal/converter/ppk_test.go` (+7 tests), `docs/guides/ppk-converter.md` (remove PuTTY requirement), `docs/planning/changelog.md`, `README.md`
+  - **Breaking changes:** None (API signature preserved, UI unchanged)
+  - **Rollback:** Revert `internal/converter/ppk.go` + `go.mod` changes (5 minutes, zero data impact)
+  - **Research:** 3 libraries evaluated, 3 alternative approaches rejected; detailed analysis in `docs/research/ppk-to-pem-alternatives.md` and `docs/research/RESEARCH-SUMMARY.md`; working PoC validated at `poc/ppk-pure-go/main.go`
+  - **See:** `docs/planning/prd-009-pure-go-ppk-parser.md` (full PRD with phase breakdown), `docs/planning/PRD-009-IMPLEMENTATION-COMPLETE.md` (implementation summary)
 
 ### Added
+- [2026-08-14] **PRD-008: PPK to PEM Converter Tool** — COMPLETE ✅
+  - **User request (Indonesian):** "buatin di menu ada tools, lalu ppk formatter, jadi nanti bisa convert ppk ke pem, convert nya ini pakai dialog aja"
+  - **Translation:** "Create a Tools menu with a PPK formatter, so users can convert PPK to PEM; use a dialog for the conversion"
+  - **Scope:** New **Tools** menu in the menu bar (between File and Help) with a **PPK Formatter** item that opens a modal dialog for converting PuTTY Private Key (`.ppk`) files to OpenSSH PEM (`.pem`)
+  - **Dialog workflow (3 steps):** (1) select source `.ppk` file → (2) enter passphrase if the key is encrypted → (3) select destination `.pem` file → **Convert**
+  - **UX:** Mission Control styling (glass morphism, cyan accents, step indicator), auto-suggested `.pem` filename derived from the `.ppk` name, path truncation with ellipsis + full path on hover, loading state during conversion, success/error banners, auto-close 2 s after success
+  - **Accessibility:** Tab focus trap inside the dialog, Escape to cancel, `role="dialog"` + `aria-modal`, `role="status"`/`role="alert"` on result banners, ARIA labels on all controls
+  - **Technical approach change:** Implemented with **`puttygen.exe` via `os/exec`** instead of the planned `github.com/ScaleFT/sshkeys` library — `puttygen` is the reference PuTTY implementation and parses both PPK v2 and v3 (including encrypted keys) without adding a Go dependency
+  - **Command executed:** `puttygen <input.ppk> -O private-openssh -o <output.pem> [--old-passphrase <pass>]`
+  - **Validation:** PPK header checked (`PuTTY-User-Key-File-2` / `PuTTY-User-Key-File-3`) before invoking `puttygen`; encryption detected via `Encryption: aes256-cbc` / `aes128-cbc` so a missing passphrase fails fast with a clear message
+  - **Security:** Output PEM written with mode `0600` (owner read/write only); passphrase passed only to the `puttygen` process and never logged or persisted
+  - **Error handling:** file not found, invalid PPK format, encrypted key without passphrase, incorrect passphrase / corrupted key, `puttygen.exe` not in PATH (message links to <https://www.putty.org/>), non-Windows platform, chmod failure
+  - **Requirements:** **Windows only** — [PuTTY](https://www.putty.org/) must be installed and `puttygen.exe` must be in `PATH`
+  - **Files created:** `internal/converter/ppk.go` (90 lines), `internal/converter/ppk_test.go` (unit tests), `frontend/src/components/PPKConverterDialog.tsx` (220 lines), `frontend/src/components/PPKConverterDialog.module.css`
+  - **Files modified:** `app.go` (added `ConvertPPKToPEM` method + converter import), `frontend/src/components/App.tsx` (Tools menu + dialog mount), `frontend/src/types/wails.d.ts`, `frontend/wailsjs/go/main/App.{js,d.ts}` (regenerated bindings), `frontend/wailsjs/runtime/runtime.{js,d.ts}` (added `SaveFileDialog` export)
+  - **Tests:** unit tests for invalid PPK format and missing file; build verification `go build ./...` exit 0, `npm run build` exit 0
+  - **Documentation:** User guide at `docs/guides/ppk-converter.md`
+  - **See:** `docs/planning/prd-008-ppk-to-pem-converter.md` (full PRD), `docs/planning/PRD-008-CHECKLIST.md` (checklist)
+
 - [2026-08-07] **PRD-007: Machine-Bound Keyless Encryption** — COMPLETE ✅
   - **User request (Indonesian):** "saya ingin cukup fileexe dan bin tanpa ke registry"
   - **Translation:** "I want only the exe file and bin file, without registry"
