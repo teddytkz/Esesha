@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [2026-08-14] **Fix-011: Store Private Key Content Securely (Not Path)** — ⚠️ APPROVED WITH NOTES
+  - **Status:** ✅ Implementation complete, all tests passing (27/27), documentation comprehensive, TypeScript errors fixed during final review
+  - **Review Date:** 2026-08-14 (Final Comprehensive Review)
+  - **Verdict:** ⚠️ APPROVED WITH NOTES — Production ready; manual integration test recommended before user release
+  - **Quality Score:** 9.5/10 (Code: 9.5, Tests: 9, Docs: 10, Security: 9, Compatibility: 10)
+  - **Problem:** Private keys stored as file paths — not portable, breaks if the key file is deleted or moved.
+  - **Solution:** Store the **DPAPI-encrypted PEM content** in the database (`Connection.EncryptedPrivateKey []byte`), like passwords. The key file is read once at selection, validated, encrypted, and persisted; connections no longer depend on the original file.
+  - **Backward compatibility:** 100% — `Connection.PrivateKeyPath` retained (deprecated). SSH client uses `EncryptedPrivateKey` first, falls back to `PrivateKeyPath`. Existing connections work unchanged; no migration required.
+  - **Validation (Fix-011B):** `SelectPrivateKeyFile()` validates with `ssh.ParsePrivateKey()` before encrypting (rejects non-SSH files); `client.go` checks for empty decrypted content (corruption guard).
+  - **API changes:** `SelectPrivateKeyFile()` now returns `PrivateKeyFileResult{Path, EncryptedContent}`; `CreateConnection`/`UpdateConnection`/`ImportConnectionFromBackup` accept `encryptedPrivateKey`; `ConvertPPKToPEM()` now returns DPAPI-encrypted PEM content.
+  - **Export/import:** `encrypted_private_key` blob preserved as-is in backups (DPAPI is machine/user-bound, so it only decrypts on the originating machine).
+  - **UI:** Displays `🔒 Private key stored securely` instead of a file path.
+  - **Encryption:** Windows DPAPI (CurrentUser scope) — same primitive as passwords; machine/user-bound by design.
+  - **Docs:** `docs/features/secure-key-storage.md`, `docs/technical/pem-encryption.md`, `docs/api/connection-api.md`
+  - **See:** `docs/planning/fix-011-pem-content-storage.md` (plan), `docs/planning/FIX-011-IMPLEMENTATION-SUMMARY.md`
+
+### Fixed
+- [2026-08-14] **Fix-011B: Add PEM Content Validation** — Bug fix for Fix-011 Phase 1-3
+  - **Bug #1:** Missing PEM validation in `SelectPrivateKeyFile()` — users could select non-SSH files (txt, jpg), causing cryptic errors during connection
+  - **Bug #2:** Missing empty content check after decryption in `NewClientWithKeyPassphraseAndHostKey()` — corrupted DB or encryption issues produced unclear errors
+  - **Fix:** Add `ssh.ParsePrivateKey()` validation before encrypting in `app.go:268-282`; add empty content check after decrypting in `internal/ssh/client.go:75-82`
+  - **Files modified:** `app.go`, `internal/ssh/client.go`
+  - **Impact:** Better UX — clear error messages at file selection time; prevents invalid data storage
+  - **Effort:** 1.5 hours
+  - **Agent:** Backend Developer
+
 ### Removed
 - [2026-08-14] **PRD-010: Embedded SSH Keys (Rolled Back)** — REMOVED ✅
   - **Reason:** User preference for simpler authentication model — keep only password and file-based key authentication

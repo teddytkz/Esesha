@@ -22,8 +22,8 @@ export function ConvertPPKToPEM(arg1, arg2, arg3) {
   return window['go']['main']['App']['ConvertPPKToPEM'](arg1, arg2, arg3);
 }
 
-export function CreateConnection(arg1, arg2, arg3, arg4, arg5, arg6) {
-  return window['go']['main']['App']['CreateConnection'](arg1, arg2, arg3, arg4, arg5, arg6);
+export function CreateConnection(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+  return window['go']['main']['App']['CreateConnection'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 }
 
 export function CreateDesktopShortcut() {
@@ -74,8 +74,8 @@ export function GetDecryptedPassword(arg1) {
   return window['go']['main']['App']['GetDecryptedPassword'](arg1);
 }
 
-export function ImportConnectionFromBackup(arg1, arg2, arg3, arg4, arg5, arg6) {
-  return window['go']['main']['App']['ImportConnectionFromBackup'](arg1, arg2, arg3, arg4, arg5, arg6);
+export function ImportConnectionFromBackup(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+  return window['go']['main']['App']['ImportConnectionFromBackup'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 }
 
 export function ListConnections() {
@@ -118,8 +118,8 @@ export function SendInput(arg1, arg2) {
   return window['go']['main']['App']['SendInput'](arg1, arg2);
 }
 
-export function UpdateConnection(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
-  return window['go']['main']['App']['UpdateConnection'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+export function UpdateConnection(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
+  return window['go']['main']['App']['UpdateConnection'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
 }
 
 export function UploadFile(arg1, arg2, arg3) {

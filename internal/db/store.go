@@ -34,15 +34,16 @@ type jsonData struct {
 
 // exportConnection represents connection with plain text password for backup
 type exportConnection struct {
-	ID             int    `json:"id"`
-	Name           string `json:"name"`
-	Host           string `json:"host"`
-	Port           int    `json:"port"`
-	Username       string `json:"username"`
-	Password       string `json:"password"`
-	PrivateKeyPath string `json:"privateKeyPath"`
-	CreatedAt      int64  `json:"createdAt"`
-	UpdatedAt      int64  `json:"updatedAt"`
+	ID                  int    `json:"id"`
+	Name                string `json:"name"`
+	Host                string `json:"host"`
+	Port                int    `json:"port"`
+	Username            string `json:"username"`
+	Password            string `json:"password"`
+	PrivateKeyPath      string `json:"privateKeyPath"`
+	EncryptedPrivateKey []byte `json:"encrypted_private_key"` // Machine-bound DPAPI; preserved as-is for security
+	CreatedAt           int64  `json:"createdAt"`
+	UpdatedAt           int64  `json:"updatedAt"`
 }
 
 type exportData struct {
@@ -226,14 +227,15 @@ func (s *Store) ExportJSON(path string) error {
 	exportConns := make([]*exportConnection, 0, len(s.connections))
 	for _, conn := range s.connections {
 		ec := &exportConnection{
-			ID:             conn.ID,
-			Name:           conn.Name,
-			Host:           conn.Host,
-			Port:           conn.Port,
-			Username:       conn.Username,
-			PrivateKeyPath: conn.PrivateKeyPath,
-			CreatedAt:      conn.CreatedAt,
-			UpdatedAt:      conn.UpdatedAt,
+			ID:                  conn.ID,
+			Name:                conn.Name,
+			Host:                conn.Host,
+			Port:                conn.Port,
+			Username:            conn.Username,
+			PrivateKeyPath:      conn.PrivateKeyPath,
+			EncryptedPrivateKey: conn.EncryptedPrivateKey,
+			CreatedAt:           conn.CreatedAt,
+			UpdatedAt:           conn.UpdatedAt,
 		}
 
 		// Decrypt password if exists
@@ -289,14 +291,15 @@ func (s *Store) ImportJSON(path string) error {
 		for _, ec := range ed.Connections {
 			now := time.Now()
 			conn := &models.Connection{
-				ID:             s.nextID,
-				Name:           ec.Name,
-				Host:           ec.Host,
-				Port:           ec.Port,
-				Username:       ec.Username,
-				PrivateKeyPath: ec.PrivateKeyPath,
-				CreatedAt:      now.Unix(),
-				UpdatedAt:      now.Unix(),
+				ID:                  s.nextID,
+				Name:                ec.Name,
+				Host:                ec.Host,
+				Port:                ec.Port,
+				Username:            ec.Username,
+				PrivateKeyPath:      ec.PrivateKeyPath,
+				EncryptedPrivateKey: ec.EncryptedPrivateKey,
+				CreatedAt:           now.Unix(),
+				UpdatedAt:           now.Unix(),
 			}
 
 			// Encrypt password if exists

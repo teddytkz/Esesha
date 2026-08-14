@@ -11,6 +11,7 @@ Index of all project documentation. Start here.
 | Guide | What it covers |
 | ----- | -------------- |
 | [PPK to PEM Converter](guides/ppk-converter.md) | Converting PuTTY `.ppk` keys to OpenSSH `.pem` via **Tools → PPK Formatter** — pure-Go, no PuTTY needed, cross-platform |
+| [Secure Private Key Storage](features/secure-key-storage.md) | Fix-011 user guide — keys stored encrypted in the DB, `🔒` indicator, machine-bound limitation, backward compatibility |
 
 ## Build
 
@@ -22,13 +23,13 @@ Index of all project documentation. Start here.
 
 | Document | What it covers |
 | -------- | -------------- |
-| _(none)_ | |
+| [PEM Encryption — Technical](technical/pem-encryption.md) | Fix-011 internals — DPAPI encryption, data model, priority/fallback, export/import, validation, testing |
 
 ## API
 
 | Document | What it covers |
 | -------- | -------------- |
-| _(none)_ | |
+| [Connection API](api/connection-api.md) | `SelectPrivateKeyFile`, `ConvertPPKToPEM`, `Create`/`Update`/`Import` connection, `ConnectSSH` — with Fix-011 encrypted-key params |
 
 ## Design
 

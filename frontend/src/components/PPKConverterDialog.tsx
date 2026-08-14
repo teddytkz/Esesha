@@ -5,6 +5,7 @@ import styles from './PPKConverterDialog.module.css';
 
 interface PPKConverterDialogProps {
   onClose: () => void;
+  onConverted?: (encryptedContent: number[]) => void;
 }
 
 type Status = { kind: 'idle' } | { kind: 'success'; message: string } | { kind: 'error'; message: string };
@@ -14,7 +15,7 @@ const suggestPemName = (ppkPath: string): string => {
   return base.replace(/\.ppk$/i, '') + '.pem';
 };
 
-const PPKConverterDialog: React.FC<PPKConverterDialogProps> = ({ onClose }) => {
+const PPKConverterDialog: React.FC<PPKConverterDialogProps> = ({ onClose, onConverted }) => {
   const [ppkPath, setPpkPath] = useState('');
   const [pemPath, setPemPath] = useState('');
   const [passphrase, setPassphrase] = useState('');
@@ -59,7 +60,8 @@ const PPKConverterDialog: React.FC<PPKConverterDialogProps> = ({ onClose }) => {
 
   const selectSource = async () => {
     try {
-      const path = await SelectPrivateKeyFile();
+      const result = await SelectPrivateKeyFile();
+      const path = result?.path;
       if (path) {
         setPpkPath(path);
         setStatus({ kind: 'idle' });
@@ -90,8 +92,10 @@ const PPKConverterDialog: React.FC<PPKConverterDialogProps> = ({ onClose }) => {
     setConverting(true);
     setStatus({ kind: 'idle' });
     try {
-      await ConvertPPKToPEM(ppkPath, pemPath, passphrase);
-      setStatus({ kind: 'success', message: 'Successfully converted PPK to PEM' });
+      // ConvertPPKToPEM now returns the DPAPI-encrypted PEM content (Go []byte as number[])
+      const encrypted = await ConvertPPKToPEM(ppkPath, pemPath, passphrase);
+      onConverted?.(encrypted);
+      setStatus({ kind: 'success', message: '🔒 Key converted and stored securely' });
       successTimer.current = window.setTimeout(() => onClose(), 2000);
     } catch (err) {
       setStatus({ kind: 'error', message: `Conversion failed: ${err}` });

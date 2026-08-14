@@ -6,8 +6,9 @@ type Connection struct {
 	Host              string `json:"host"`
 	Port              int    `json:"port"`
 	Username          string `json:"username"`
-	EncryptedPassword []byte `json:"encrypted_password"`
-	PrivateKeyPath    string `json:"privateKeyPath"`
-	CreatedAt         int64  `json:"createdAt"`
+	EncryptedPassword   []byte `json:"encrypted_password"`
+	PrivateKeyPath      string `json:"privateKeyPath"`         // Deprecated: kept for backward compatibility
+	EncryptedPrivateKey []byte `json:"encrypted_private_key"`  // New: stores encrypted PEM content
+	CreatedAt           int64  `json:"createdAt"`
 	UpdatedAt         int64  `json:"updatedAt"`
 }

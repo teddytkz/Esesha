@@ -54,11 +54,11 @@ func (m *Manager) SetHostKeyCallbacks(
 
 // Connect establishes SSH connection and starts PTY session
 func (m *Manager) Connect(host string, port int, username, password, privateKeyPath string, cols, rows int) (string, error) {
-	return m.ConnectWithPassphrase(host, port, username, password, privateKeyPath, "", cols, rows)
+	return m.ConnectWithPassphrase(host, port, username, password, privateKeyPath, nil, "", cols, rows)
 }
 
 // ConnectWithPassphrase establishes SSH connection with optional key passphrase.
-func (m *Manager) ConnectWithPassphrase(host string, port int, username, password, privateKeyPath, keyPassphrase string, cols, rows int) (string, error) {
+func (m *Manager) ConnectWithPassphrase(host string, port int, username, password, privateKeyPath string, encryptedPrivateKey []byte, keyPassphrase string, cols, rows int) (string, error) {
 	var client *Client
 	var err error
 
@@ -68,8 +68,8 @@ func (m *Manager) ConnectWithPassphrase(host string, port int, username, passwor
 		hostKeyCallback = m.hostKeyHandler.Callback
 	}
 
-	if privateKeyPath != "" {
-		client, err = NewClientWithKeyPassphraseAndHostKey(host, port, username, privateKeyPath, keyPassphrase, hostKeyCallback)
+	if privateKeyPath != "" || len(encryptedPrivateKey) > 0 {
+		client, err = NewClientWithKeyPassphraseAndHostKey(host, port, username, privateKeyPath, encryptedPrivateKey, keyPassphrase, hostKeyCallback)
 	} else {
 		client, err = NewClientWithHostKeyCallback(host, port, username, password, "", hostKeyCallback)
 	}

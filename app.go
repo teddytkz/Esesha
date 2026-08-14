@@ -10,6 +10,7 @@ import (
 	"esesha/internal/models"
 	"esesha/internal/sftp"
 	"esesha/internal/ssh"
+	cryptossh "golang.org/x/crypto/ssh"
 	"fmt"
 	"net"
 	"os"
@@ -129,7 +130,7 @@ func (a *App) shutdown(ctx context.Context) {
 }
 
 // CreateConnection creates a new SSH connection profile
-func (a *App) CreateConnection(name, host string, port int, username, password, privateKeyPath string) (int, error) {
+func (a *App) CreateConnection(name, host string, port int, username, password, privateKeyPath string, encryptedPrivateKey []byte) (int, error) {
 	var encryptedPassword []byte
 	if password != "" {
 		encrypted, err := crypto.Encrypt([]byte(password))
@@ -140,12 +141,13 @@ func (a *App) CreateConnection(name, host string, port int, username, password, 
 	}
 
 	conn := &models.Connection{
-		Name:              name,
-		Host:              host,
-		Port:              port,
-		Username:          username,
-		EncryptedPassword: encryptedPassword,
-		PrivateKeyPath:    privateKeyPath,
+		Name:               name,
+		Host:               host,
+		Port:               port,
+		Username:           username,
+		EncryptedPassword:  encryptedPassword,
+		PrivateKeyPath:     privateKeyPath,
+		EncryptedPrivateKey: encryptedPrivateKey,
 	}
 
 	if err := a.store.CreateConnection(conn); err != nil {
@@ -157,14 +159,15 @@ func (a *App) CreateConnection(name, host string, port int, username, password, 
 
 // ImportConnectionFromBackup imports a connection with an existing encrypted password
 // (used when restoring backups that contain encrypted_password field)
-func (a *App) ImportConnectionFromBackup(name, host string, port int, username, privateKeyPath string, encryptedPassword []byte) (int, error) {
+func (a *App) ImportConnectionFromBackup(name, host string, port int, username, privateKeyPath string, encryptedPassword, encryptedPrivateKey []byte) (int, error) {
 	conn := &models.Connection{
-		Name:              name,
-		Host:              host,
-		Port:              port,
-		Username:          username,
-		EncryptedPassword: encryptedPassword,
-		PrivateKeyPath:    privateKeyPath,
+		Name:                name,
+		Host:                host,
+		Port:                port,
+		Username:            username,
+		EncryptedPassword:   encryptedPassword,
+		PrivateKeyPath:      privateKeyPath,
+		EncryptedPrivateKey: encryptedPrivateKey,
 	}
 
 	if err := a.store.CreateConnection(conn); err != nil {
@@ -185,7 +188,7 @@ func (a *App) ListConnections() ([]*models.Connection, error) {
 }
 
 // UpdateConnection updates an existing connection
-func (a *App) UpdateConnection(id int, name, host string, port int, username, password, privateKeyPath string) error {
+func (a *App) UpdateConnection(id int, name, host string, port int, username, password, privateKeyPath string, encryptedPrivateKey []byte) error {
 	conn, err := a.store.GetConnection(id)
 	if err != nil {
 		return err
@@ -199,6 +202,7 @@ func (a *App) UpdateConnection(id int, name, host string, port int, username, pa
 	conn.Port = port
 	conn.Username = username
 	conn.PrivateKeyPath = privateKeyPath
+	conn.EncryptedPrivateKey = encryptedPrivateKey
 
 	if password != "" {
 		encrypted, err := crypto.Encrypt([]byte(password))
@@ -236,8 +240,16 @@ func (a *App) GetDecryptedPassword(id int) (string, error) {
 	return string(decrypted), nil
 }
 
-// SelectPrivateKeyFile opens file picker to select private key file
-func (a *App) SelectPrivateKeyFile() (string, error) {
+// PrivateKeyFileResult holds the selected private key file path and its
+// DPAPI-encrypted content, ready to be stored on the connection.
+type PrivateKeyFileResult struct {
+	Path             string `json:"path"`
+	EncryptedContent []byte `json:"encryptedContent"`
+}
+
+// SelectPrivateKeyFile opens file picker to select private key file, reads its
+// content and returns the path plus the DPAPI-encrypted content.
+func (a *App) SelectPrivateKeyFile() (PrivateKeyFileResult, error) {
 	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Select Private Key File",
 		Filters: []runtime.FileFilter{
@@ -245,7 +257,29 @@ func (a *App) SelectPrivateKeyFile() (string, error) {
 			{DisplayName: "All Files", Pattern: "*"},
 		},
 	})
-	return filePath, err
+	if err != nil || filePath == "" {
+		return PrivateKeyFileResult{}, err
+	}
+
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return PrivateKeyFileResult{}, fmt.Errorf("failed to read private key file: %w", err)
+	}
+
+	// Validate that the file is actually a valid SSH private key
+	if _, err = cryptossh.ParsePrivateKey(content); err != nil {
+		return PrivateKeyFileResult{}, fmt.Errorf("invalid SSH private key format: %w", err)
+	}
+
+	encryptedContent, err := crypto.Encrypt(content)
+	if err != nil {
+		return PrivateKeyFileResult{}, fmt.Errorf("failed to encrypt private key: %w", err)
+	}
+
+	return PrivateKeyFileResult{
+		Path:             filePath,
+		EncryptedContent: encryptedContent,
+	}, nil
 }
 
 // SelectPEMOutputFile opens a file save dialog for PEM output
@@ -261,9 +295,24 @@ func (a *App) SelectPEMOutputFile(defaultFilename string) (string, error) {
 	return filePath, err
 }
 
-// ConvertPPKToPEM converts a PuTTY .ppk file to OpenSSH PEM format
-func (a *App) ConvertPPKToPEM(ppkPath, pemPath, passphrase string) error {
-	return converter.ConvertPPKToPEM(ppkPath, pemPath, passphrase)
+// ConvertPPKToPEM converts a PuTTY .ppk file to OpenSSH PEM format and returns
+// the DPAPI-encrypted PEM content so it can be stored on the connection.
+func (a *App) ConvertPPKToPEM(ppkPath, pemPath, passphrase string) ([]byte, error) {
+	if err := converter.ConvertPPKToPEM(ppkPath, pemPath, passphrase); err != nil {
+		return nil, err
+	}
+
+	pemContent, err := os.ReadFile(pemPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read converted PEM file: %w", err)
+	}
+
+	encrypted, err := crypto.Encrypt(pemContent)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt PEM content: %w", err)
+	}
+
+	return encrypted, nil
 }
 
 // ConnectSSH establishes SSH connection and starts PTY session
@@ -296,6 +345,7 @@ func (a *App) ConnectSSHWithPassphrase(connectionID int, keyPassphrase string, c
 		conn.Username,
 		password,
 		conn.PrivateKeyPath,
+		conn.EncryptedPrivateKey,
 		keyPassphrase,
 		cols,
 		rows,

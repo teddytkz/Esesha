@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -354,6 +355,64 @@ func TestExportJSON(t *testing.T) {
 
 	if exported.Connections[0].Name != "Export Test" {
 		t.Errorf("exported connection name mismatch: got %q", exported.Connections[0].Name)
+	}
+}
+
+func TestExportImportEncryptedPrivateKey(t *testing.T) {
+	tmpDir := t.TempDir()
+	storePath := filepath.Join(tmpDir, "esesha.bin")
+	exportPath := filepath.Join(tmpDir, "export.json")
+
+	key, err := deriveMachineKey(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	encKey := []byte("machine-bound-encrypted-pem-content")
+	store := &Store{
+		filePath:   storePath,
+		encryptKey: key,
+		connections: []*models.Connection{
+			{
+				ID:                  1,
+				Name:                "Key Test",
+				Host:                "host.local",
+				Port:                22,
+				Username:            "user",
+				EncryptedPrivateKey: encKey,
+			},
+		},
+		hostKeys: []HostKey{},
+		nextID:   2,
+	}
+	if err := store.save(); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.ExportJSON(exportPath); err != nil {
+		t.Fatalf("export failed: %v", err)
+	}
+
+	// Import into a fresh store
+	importStore := &Store{
+		filePath:   filepath.Join(tmpDir, "import.bin"),
+		encryptKey: key,
+		connections: []*models.Connection{},
+		hostKeys:    []HostKey{},
+		nextID:      1,
+	}
+	if err := importStore.ImportJSON(exportPath); err != nil {
+		t.Fatalf("import failed: %v", err)
+	}
+
+	conns, err := importStore.ListConnections()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(conns) != 1 {
+		t.Fatalf("expected 1 imported connection, got %d", len(conns))
+	}
+	if !bytes.Equal(conns[0].EncryptedPrivateKey, encKey) {
+		t.Errorf("encrypted private key not preserved: got %q, want %q", conns[0].EncryptedPrivateKey, encKey)
 	}
 }
 

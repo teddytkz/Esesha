@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"esesha/internal/crypto"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -62,18 +63,33 @@ func NewClientWithKey(host string, port int, username, privateKeyPath string) (*
 
 // NewClientWithKeyAndPassphrase creates SSH client with private key auth and optional passphrase
 func NewClientWithKeyAndPassphrase(host string, port int, username, privateKeyPath, passphrase string) (*Client, error) {
-	return NewClientWithKeyPassphraseAndHostKey(host, port, username, privateKeyPath, passphrase, ssh.InsecureIgnoreHostKey())
+	return NewClientWithKeyPassphraseAndHostKey(host, port, username, privateKeyPath, nil, passphrase, ssh.InsecureIgnoreHostKey())
 }
 
 // NewClientWithKeyPassphraseAndHostKey creates SSH client with all options.
-func NewClientWithKeyPassphraseAndHostKey(host string, port int, username, privateKeyPath, passphrase string, hostKeyCallback ssh.HostKeyCallback) (*Client, error) {
-	if privateKeyPath == "" {
-		return nil, fmt.Errorf("no private key specified")
-	}
+// Priority 1: encryptedPrivateKey (decrypted PEM content from DB). Priority 2: privateKeyPath (legacy file).
+func NewClientWithKeyPassphraseAndHostKey(host string, port int, username, privateKeyPath string, encryptedPrivateKey []byte, passphrase string, hostKeyCallback ssh.HostKeyCallback) (*Client, error) {
+	var key []byte
+	var err error
 
-	key, err := ioutil.ReadFile(privateKeyPath)
-	if err != nil {
-		return nil, fmt.Errorf("read private key failed: %w", err)
+	if len(encryptedPrivateKey) > 0 {
+		// Priority 1: Use encrypted private key content from database
+		decryptedKey, err := crypto.Decrypt(encryptedPrivateKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt private key: %w", err)
+		}
+		if len(decryptedKey) == 0 {
+			return nil, fmt.Errorf("decrypted private key is empty (possible database corruption)")
+		}
+		key = decryptedKey
+	} else if privateKeyPath != "" {
+		// Priority 2: Fallback to reading from file (backward compatibility)
+		key, err = ioutil.ReadFile(privateKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("read private key failed: %w", err)
+		}
+	} else {
+		return nil, fmt.Errorf("no private key specified")
 	}
 
 	var signer ssh.Signer

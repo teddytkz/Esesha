@@ -9,7 +9,7 @@ declare global {
           ChangePermissions(sessionId: string, path: string, mode: number): Promise<void>;
           ConnectSSH(connectionId: number, cols: number, rows: number): Promise<string>;
           ConnectSSHWithPassphrase(connectionId: number, passphrase: string, cols: number, rows: number): Promise<string>;
-          CreateConnection(name: string, host: string, port: number, username: string, password: string, privateKeyPath: string): Promise<number>;
+          CreateConnection(name: string, host: string, port: number, username: string, password: string, privateKeyPath: string, encryptedPrivateKey: number[]): Promise<number>;
           CreateDirectory(sessionId: string, path: string): Promise<void>;
           DeleteConnection(id: number): Promise<void>;
           DeletePath(sessionId: string, path: string): Promise<void>;
@@ -27,16 +27,22 @@ declare global {
           RenamePath(sessionId: string, oldPath: string, newPath: string): Promise<void>;
           ResizeTerminal(sessionId: string, cols: number, rows: number): Promise<void>;
           SendInput(sessionId: string, input: string): Promise<void>;
-          UpdateConnection(id: number, name: string, host: string, port: number, username: string, password: string, privateKeyPath: string): Promise<void>;
+          UpdateConnection(id: number, name: string, host: string, port: number, username: string, password: string, privateKeyPath: string, encryptedPrivateKey: number[]): Promise<void>;
           UploadFile(sessionId: string, localPath: string, remotePath: string): Promise<void>;
           UploadFileData(sessionId: string, fileName: string, remotePath: string): Promise<void>;
           WriteFile(sessionId: string, remotePath: string, base64Data: string): Promise<void>;
-          ConvertPPKToPEM(ppkPath: string, pemPath: string, passphrase: string): Promise<void>;
+          ConvertPPKToPEM(ppkPath: string, pemPath: string, passphrase: string): Promise<number[]>;
           SelectPEMOutputFile(defaultFilename: string): Promise<string>;
+          SelectPrivateKeyFile(): Promise<PrivateKeyFileResult>;
         };
       };
     };
   }
+}
+
+export interface PrivateKeyFileResult {
+  path: string;
+  encryptedContent: number[];
 }
 
 export {};

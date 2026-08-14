@@ -15,7 +15,9 @@ interface NewConnection {
   port: number;
   username: string;
   password: string;
-  privateKeyPath: string;
+  privateKeyPath: string;  // Keep for backward compatibility (legacy connections)
+  encryptedPrivateKey?: number[];  // New: DPAPI-encrypted PEM content (Go []byte as number[])
+  privateKeyFileName?: string;  // Display-only: filename of selected key (not full path)
 }
 
 interface SessionInfo {
@@ -41,7 +43,9 @@ const App: React.FC = () => {
     port: 22,
     username: '',
     password: '',
-    privateKeyPath: ''
+    privateKeyPath: '',
+    encryptedPrivateKey: undefined,
+    privateKeyFileName: ''
   });
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
@@ -57,7 +61,9 @@ const App: React.FC = () => {
     port: 22,
     username: '',
     password: '',
-    privateKeyPath: ''
+    privateKeyPath: '',
+    encryptedPrivateKey: undefined,
+    privateKeyFileName: ''
   });
   const [editFormError, setEditFormError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<models.Connection | null>(null);
@@ -151,8 +157,9 @@ const App: React.FC = () => {
       return;
     }
     
-    // Check if connection uses an encrypted private key (file or embedded)
-    if (conn.privateKeyPath) {
+    // Check if connection uses a private key (legacy file path or embedded encrypted key)
+    const hasKey = !!conn.privateKeyPath || (conn.encrypted_private_key && conn.encrypted_private_key.length > 0);
+    if (hasKey) {
       setPassphrasePrompt({ connection: conn });
     } else {
       connectToServer(conn, '');
@@ -182,7 +189,9 @@ const App: React.FC = () => {
       port: conn.port,
       username: conn.username,
       password: '',
-      privateKeyPath: conn.privateKeyPath || ''
+      privateKeyPath: conn.privateKeyPath || '',
+      encryptedPrivateKey: conn.encrypted_private_key && conn.encrypted_private_key.length > 0 ? conn.encrypted_private_key : undefined,
+      privateKeyFileName: conn.encrypted_private_key && conn.encrypted_private_key.length > 0 ? '🔒 Private key stored securely' : (conn.privateKeyPath ? conn.privateKeyPath.split(/[\\/]/).pop() : '')
     });
     setIsEditModalOpen(true);
   };
@@ -196,7 +205,9 @@ const App: React.FC = () => {
       port: 22,
       username: '',
       password: '',
-      privateKeyPath: ''
+      privateKeyPath: '',
+      encryptedPrivateKey: undefined,
+      privateKeyFileName: ''
     });
     setEditFormError('');
   };
@@ -215,7 +226,8 @@ const App: React.FC = () => {
         editFormData.port,
         editFormData.username,
         editFormData.password,
-        editFormData.privateKeyPath
+        editFormData.privateKeyPath,
+        editFormData.encryptedPrivateKey || []
       );
       
       const result = await ListConnections();
@@ -231,9 +243,14 @@ const App: React.FC = () => {
 
   const selectEditPrivateKeyFile = async () => {
     try {
-      const path = await SelectPrivateKeyFile();
-      if (path) {
-        setEditFormData({...editFormData, privateKeyPath: path});
+      const result = await SelectPrivateKeyFile();
+      if (result && result.path) {
+        // Store encrypted content, not the path
+        setEditFormData({
+          ...editFormData,
+          encryptedPrivateKey: result.encryptedContent,
+          privateKeyFileName: result.path.split(/[\\/]/).pop() || ''
+        });
       }
     } catch (err) {
       setStatusText(`Error selecting file: ${err}`);
@@ -416,24 +433,27 @@ const App: React.FC = () => {
           const port = conn.port || 22;
           const privateKeyPath = conn.privateKeyPath || '';
 
+          // Convert a base64 string or byte array to a number array for the Go binding
+          const toBytes = (v: any): number[] => {
+            if (!v) return [];
+            if (typeof v === 'string') {
+              const binary = atob(v);
+              const arr = new Array(binary.length);
+              for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+              return arr;
+            }
+            return Array.from(v as Uint8Array);
+          };
+
           // Check if backup contains encrypted password (old format)
           if (conn.encrypted_password) {
-            // Convert base64 string to number array for the Go binding
-            let encryptedBytes: number[];
-            if (typeof conn.encrypted_password === 'string') {
-              const binary = atob(conn.encrypted_password);
-              encryptedBytes = new Array(binary.length);
-              for (let i = 0; i < binary.length; i++) {
-                encryptedBytes[i] = binary.charCodeAt(i);
-              }
-            } else {
-              encryptedBytes = Array.from(conn.encrypted_password as Uint8Array);
-            }
-            await ImportConnectionFromBackup(conn.name, conn.host, port, conn.username, privateKeyPath, encryptedBytes);
+            const encryptedBytes = toBytes(conn.encrypted_password);
+            const encryptedKeyBytes = toBytes(conn.encrypted_private_key);
+            await ImportConnectionFromBackup(conn.name, conn.host, port, conn.username, privateKeyPath, encryptedBytes, encryptedKeyBytes);
           } else {
             // New format: plain text password, encrypt on server side
             const password = conn.password || '';
-            await CreateConnection(conn.name, conn.host, port, conn.username, password, privateKeyPath);
+            await CreateConnection(conn.name, conn.host, port, conn.username, password, privateKeyPath, []);
           }
           imported++;
         } catch (err) {
@@ -543,7 +563,9 @@ const App: React.FC = () => {
       port: 22,
       username: '',
       password: '',
-      privateKeyPath: ''
+      privateKeyPath: '',
+      encryptedPrivateKey: undefined,
+      privateKeyFileName: ''
     });
     setAuthMethod('password');
   };
@@ -554,9 +576,14 @@ const App: React.FC = () => {
 
   const selectPrivateKeyFile = async () => {
     try {
-      const filePath = await SelectPrivateKeyFile();
-      if (filePath) {
-        setNewConn({ ...newConn, privateKeyPath: filePath });
+      const result = await SelectPrivateKeyFile();
+      if (result && result.path) {
+        // Store encrypted content, not the path
+        setNewConn({
+          ...newConn,
+          encryptedPrivateKey: result.encryptedContent,
+          privateKeyFileName: result.path.split(/[\\/]/).pop() || ''
+        });
       }
     } catch (err) {
       console.error('Failed to select file:', err);
@@ -572,15 +599,23 @@ const App: React.FC = () => {
       return;
     }
     
-    if (authMethod === 'key' && !newConn.privateKeyPath) {
-      setFormError('Private Key Path is required');
+    if (authMethod === 'key' && !newConn.encryptedPrivateKey && !newConn.privateKeyPath) {
+      setFormError('Private Key is required');
       return;
     }
 
     try {
       const pwd = newConn.password;
       const keyPath = authMethod === 'key' ? newConn.privateKeyPath : '';
-      await CreateConnection(newConn.name, newConn.host, newConn.port, newConn.username, pwd, keyPath);
+      await CreateConnection(
+        newConn.name,
+        newConn.host,
+        newConn.port,
+        newConn.username,
+        pwd,
+        keyPath,
+        newConn.encryptedPrivateKey || []
+      );
       setFormSuccess('Connection saved');
       setTimeout(() => {
         setShowAddForm(false);
@@ -982,14 +1017,17 @@ const App: React.FC = () => {
                 </div>
               ) : (
                 <div className={styles.formGroup}>
-                  <label htmlFor="conn-auth-privatekey">Private Key Path</label>
+                  <label htmlFor="conn-auth-privatekey">Private Key</label>
                   <div className={styles.fileInputGroup}>
                     <input 
                       id="conn-auth-privatekey"
                       type="text" 
-                      value={newConn.privateKeyPath}
-                      onChange={(e) => setNewConn({...newConn, privateKeyPath: e.target.value})}
-                      placeholder="C:\Users\user\.ssh\id_rsa" 
+                      value={newConn.encryptedPrivateKey && newConn.encryptedPrivateKey.length > 0
+                        ? (newConn.privateKeyFileName ? `🔒 ${newConn.privateKeyFileName}` : '🔒 Private key stored securely')
+                        : newConn.privateKeyPath}
+                      onChange={(e) => setNewConn({...newConn, privateKeyPath: e.target.value, encryptedPrivateKey: undefined, privateKeyFileName: ''})}
+                      placeholder="Select a private key file" 
+                      readOnly
                     />
                     <button 
                       type="button" 
@@ -1092,14 +1130,17 @@ const App: React.FC = () => {
                 <p className={styles.helperText}>For password authentication. Leave blank to keep the existing password unchanged.</p>
               </div>
               <div className={styles.formGroup}>
-                <label htmlFor="edit-conn-auth-privatekey">Private Key Path</label>
+                <label htmlFor="edit-conn-auth-privatekey">Private Key</label>
                 <div className={styles.fileInputGroup}>
                   <input 
                     id="edit-conn-auth-privatekey"
                     type="text" 
-                    value={editFormData.privateKeyPath}
-                    onChange={(e) => setEditFormData({...editFormData, privateKeyPath: e.target.value})}
-                    placeholder="C:\Users\user\.ssh\id_rsa" 
+                    value={editFormData.encryptedPrivateKey && editFormData.encryptedPrivateKey.length > 0
+                      ? (editFormData.privateKeyFileName || '🔒 Private key stored securely')
+                      : editFormData.privateKeyPath}
+                    onChange={(e) => setEditFormData({...editFormData, privateKeyPath: e.target.value, encryptedPrivateKey: undefined, privateKeyFileName: ''})}
+                    placeholder="Select a private key file" 
+                    readOnly
                   />
                   <button 
                     type="button" 
@@ -1110,6 +1151,7 @@ const App: React.FC = () => {
                     <FolderOpen size={16} aria-hidden="true" />
                   </button>
                 </div>
+                <p className={styles.helperText}>Key content is encrypted and stored securely on this machine.</p>
               </div>
               {editFormError && (
                 <div className={`${styles.formMessage} ${styles.error}`} role="alert">{editFormError}</div>
