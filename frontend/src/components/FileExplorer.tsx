@@ -64,11 +64,20 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
   const [draggedItem, setDraggedItem] = useState<FileInfo | null>(null);
   const [dragTargetItem, setDragTargetItem] = useState<FileInfo | null>(null);
   const [editingPath, setEditingPath] = useState<string | null>(null);
+  const [nameSort, setNameSort] = useState<'asc' | 'desc'>('asc');
 
   const pathParts = useMemo(() => 
     currentPath.split('/').filter(p => p), 
     [currentPath]
   );
+
+  const sortedItems = useMemo(() => {
+    const dirs = items.filter(i => i.isDir);
+    const files = items.filter(i => !i.isDir);
+    const cmp = (a: FileInfo, b: FileInfo) =>
+      nameSort === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+    return [...dirs.sort(cmp), ...files.sort(cmp)];
+  }, [items, nameSort]);
 
   useEffect(() => {
     if (sessionId) {
@@ -446,7 +455,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
               Retry
             </button>
           </div>
-        ) : items.length === 0 ? (
+        ) : sortedItems.length === 0 ? (
           <div className={styles.empty}>
             <FolderOpen size={40} strokeWidth={1.5} aria-hidden="true" />
             <h3>Empty directory</h3>
@@ -456,12 +465,19 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
           <>
             <div className={styles.listHeader}>
               <span className={styles.colIcon}></span>
-              <span className={styles.colName}>Name</span>
+              <button
+                type="button"
+                className={`${styles.colName} ${styles.sortable}`}
+                onClick={() => setNameSort(s => s === 'asc' ? 'desc' : 'asc')}
+                aria-label={`Sort by name (${nameSort === 'asc' ? 'ascending' : 'descending'})`}
+              >
+                Name {nameSort === 'asc' ? '▲' : '▼'}
+              </button>
               <span className={styles.colSize}>Size</span>
               <span className={styles.colPerms}>Permissions</span>
               <span className={styles.colModified}>Modified</span>
             </div>
-            {items.map((item) => (
+            {sortedItems.map((item) => (
               <FileItem 
                 key={`${item.name}-${item.modifiedTime}`}
                 item={item}

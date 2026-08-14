@@ -144,6 +144,24 @@
 .colPerms { text-align: left; }
 .colModified { text-align: left; }
 
+.sortable {
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sortable:hover {
+  color: var(--accent-primary);
+}
+
 /* ═══ Loading skeleton ═══ */
 .status {
   padding: 0;
