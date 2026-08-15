@@ -245,9 +245,10 @@ const App: React.FC = () => {
     try {
       const result = await SelectPrivateKeyFile();
       if (result && result.path) {
-        // Store encrypted content, not the path
+        // Store both full path and encrypted content
         setEditFormData({
           ...editFormData,
+          privateKeyPath: result.path,
           encryptedPrivateKey: result.encryptedContent,
           privateKeyFileName: result.path.split(/[\\/]/).pop() || ''
         });
@@ -578,9 +579,10 @@ const App: React.FC = () => {
     try {
       const result = await SelectPrivateKeyFile();
       if (result && result.path) {
-        // Store encrypted content, not the path
+        // Store both full path and encrypted content
         setNewConn({
           ...newConn,
+          privateKeyPath: result.path,
           encryptedPrivateKey: result.encryptedContent,
           privateKeyFileName: result.path.split(/[\\/]/).pop() || ''
         });

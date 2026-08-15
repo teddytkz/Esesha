@@ -250,6 +250,7 @@ type PrivateKeyFileResult struct {
 
 // SelectPrivateKeyFile opens file picker to select private key file, reads its
 // content and returns the path plus the DPAPI-encrypted content.
+// The file is copied to the keys folder in the executable directory.
 func (a *App) SelectPrivateKeyFile() (PrivateKeyFileResult, error) {
 	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Select Private Key File",
@@ -277,10 +278,52 @@ func (a *App) SelectPrivateKeyFile() (PrivateKeyFileResult, error) {
 		return PrivateKeyFileResult{}, fmt.Errorf("failed to encrypt private key: %w", err)
 	}
 
+	// Copy file to keys folder
+	copiedPath, err := a.copyKeyToKeysFolder(filePath, content)
+	if err != nil {
+		return PrivateKeyFileResult{}, fmt.Errorf("failed to copy key file: %w", err)
+	}
+
 	return PrivateKeyFileResult{
-		Path:             filePath,
+		Path:             copiedPath,
 		EncryptedContent: encryptedContent,
 	}, nil
+}
+
+// copyKeyToKeysFolder copies a key file to the keys folder in executable directory
+func (a *App) copyKeyToKeysFolder(originalPath string, content []byte) (string, error) {
+	// Get executable directory
+	exePath, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("get executable path: %w", err)
+	}
+	exeDir := filepath.Dir(exePath)
+
+	// Create keys directory if not exists
+	keysDir := filepath.Join(exeDir, "keys")
+	if err := os.MkdirAll(keysDir, 0700); err != nil {
+		return "", fmt.Errorf("create keys directory: %w", err)
+	}
+
+	// Generate destination filename (preserve original filename)
+	originalFilename := filepath.Base(originalPath)
+	destPath := filepath.Join(keysDir, originalFilename)
+
+	// If file already exists, add timestamp to make it unique
+	if _, err := os.Stat(destPath); err == nil {
+		ext := filepath.Ext(originalFilename)
+		name := originalFilename[:len(originalFilename)-len(ext)]
+		timestamp := time.Now().Format("20060102-150405")
+		originalFilename = fmt.Sprintf("%s-%s%s", name, timestamp, ext)
+		destPath = filepath.Join(keysDir, originalFilename)
+	}
+
+	// Write file to keys folder
+	if err := os.WriteFile(destPath, content, 0600); err != nil {
+		return "", fmt.Errorf("write key file: %w", err)
+	}
+
+	return destPath, nil
 }
 
 // SelectPEMOutputFile opens a file save dialog for PEM output
@@ -740,7 +783,7 @@ func (a *App) EditFile(sessionID, remotePath string) error {
 	return nil
 }
 
-// BackupConnections exports connections to backup folder
+// BackupConnections exports connections to backup folder and backs up key files
 func (a *App) BackupConnections() (string, error) {
 	// Get executable directory
 	exePath, err := os.Executable()
@@ -756,14 +799,60 @@ func (a *App) BackupConnections() (string, error) {
 	}
 
 	// Generate filename with timestamp
-	filename := fmt.Sprintf("esesha-backup-%s.json", time.Now().Format("20060102-150405"))
+	timestamp := time.Now().Format("20060102-150405")
+	filename := fmt.Sprintf("esesha-backup-%s.json", timestamp)
 	filePath := filepath.Join(backupDir, filename)
 
 	if err := a.store.ExportJSON(filePath); err != nil {
 		return "", err
 	}
 
+	// Backup keys folder if it exists
+	keysDir := filepath.Join(exeDir, "keys")
+	if _, err := os.Stat(keysDir); err == nil {
+		backupKeysDir := filepath.Join(backupDir, fmt.Sprintf("keys-%s", timestamp))
+		if err := a.copyDirectory(keysDir, backupKeysDir); err != nil {
+			return "", fmt.Errorf("backup keys directory: %w", err)
+		}
+	}
+
 	return filePath, nil
+}
+
+// copyDirectory recursively copies a directory
+func (a *App) copyDirectory(src, dst string) error {
+	// Create destination directory
+	if err := os.MkdirAll(dst, 0700); err != nil {
+		return fmt.Errorf("create destination directory: %w", err)
+	}
+
+	// Read source directory
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return fmt.Errorf("read source directory: %w", err)
+	}
+
+	// Copy each entry
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		if entry.IsDir() {
+			if err := a.copyDirectory(srcPath, dstPath); err != nil {
+				return err
+			}
+		} else {
+			content, err := os.ReadFile(srcPath)
+			if err != nil {
+				return fmt.Errorf("read file %s: %w", srcPath, err)
+			}
+			if err := os.WriteFile(dstPath, content, 0600); err != nil {
+				return fmt.Errorf("write file %s: %w", dstPath, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 // RestoreConnections imports connections from a user-selected JSON file

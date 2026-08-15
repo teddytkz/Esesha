@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- [2026-08-15] **Feature: Key File Management & Backup** — COMPLETE ✅
+  - **Scope:** Automatic key file management and backup system
+  - **Features:**
+    - Private key files are automatically copied to `keys/` folder in executable directory when selected
+    - Duplicate filenames are handled with timestamp suffix (e.g., `id_rsa-20260815-112130`)
+    - Backup operation now includes `keys/` folder with timestamp (e.g., `keys-20260815-112130/`)
+    - Keys folder created with secure permissions (0700)
+    - Individual key files stored with restricted permissions (0600)
+    - Full path from keys folder saved to connection (not just filename)
+  - **Implementation:**
+    - New function `copyKeyToKeysFolder()` handles key file copying with collision detection
+    - New function `copyDirectory()` recursively backs up the keys directory
+    - Modified `SelectPrivateKeyFile()` to copy file after validation and return full path
+    - Modified `BackupConnections()` to include keys backup
+    - Fixed frontend to save `privateKeyPath` with full path from keys folder
+  - **Security:** 
+    - Keys stored locally in executable directory for easy management
+    - Original DPAPI encryption still applied to key content in database
+    - Backup preserves all key files for complete restoration
+  - **Files Modified:** `app.go`, `frontend/src/components/App.tsx`
+  - **Effort:** ~1.5 hours
+  - **Risk:** LOW — non-breaking addition, backward compatible
+  - **Benefits:** Centralized key management, complete backup/restore capability
+
 - [2026-08-15] **PRD-016: Terminal Copy/Paste Functionality** — COMPLETE ✅
   - **Scope:** Add standard copy/paste operations to the terminal component
   - **Features:**
