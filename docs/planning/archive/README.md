@@ -19,9 +19,22 @@ A PRD is archived when:
 
 ## Current Archives
 
-**Note:** PRD-002, PRD-006, and PRD-010 were **removed** in an earlier cleanup (not moved to this archive) — they were superseded by later PRDs or rolled back completely. Historical references to these PRDs may exist in commit history. The files listed below under "Archive Structure" no longer exist on disk for the same reason.
+This archive contains completed PRDs and fixes that have been successfully implemented:
 
-Currently this archive is empty. Future superseded or rolled-back PRDs will be moved here.
+### PRD Archives
+- **PRD-012**: Upload Dialog - Initial implementation
+- **PRD-013**: Upload Dialog Drag & Drop - Enhanced upload functionality
+- **PRD-014**: File Manager Toolbar Improvements - UI/UX enhancements
+- **PRD-015**: Project Cleanup & Optimization - Codebase maintenance
+- **PRD-016**: Terminal Copy/Paste - Terminal interaction improvements
+
+### Fix Archives
+- **FIX-001**: Documentation completion
+- **FIX-002**: Critical bugs resolution
+- **FIX-003**: Context menu positioning fixes
+- **FIX-004**: Context menu edge refinement
+
+All archived items have been fully implemented and tested.
 
 ## How to Reference Archived PRDs
 
@@ -41,10 +54,35 @@ Example:
 
 ```
 archive/
-└── README.md (this file)
+├── README.md (this file)
+├── PRD Archives
+│   ├── prd-012-upload-dialog.md
+│   ├── prd-012-implementation-summary.md
+│   ├── prd-013-upload-dialog-drag-drop.md
+│   ├── prd-013-implementation-summary.md
+│   ├── prd-014-file-manager-toolbar-improvements.md
+│   ├── prd-014-implementation-summary.md
+│   ├── prd-015-index.md
+│   ├── prd-015-checklist.md
+│   ├── prd-015-orchestrator-guide.md
+│   ├── prd-015-planning-complete.md
+│   ├── prd-015-project-cleanup-optimization.md
+│   ├── prd-015-implementation-summary.md
+│   ├── prd-016-terminal-copy-paste.md
+│   └── prd-016-implementation-summary.md
+└── Fix Archives
+    ├── fix-001-prd-015-documentation-completion.md
+    ├── fix-001-implementation-summary.md
+    ├── fix-002-prd-016-critical-bugs.md
+    ├── fix-002-implementation-summary.md
+    ├── fix-003-context-menu-positioning.md
+    ├── fix-003-planning-complete.md
+    ├── fix-003-implementation-summary.md
+    ├── fix-004-context-menu-edge-refinement.md
+    ├── fix-004-orchestrator-handoff.md
+    ├── fix-004-planning-complete.md
+    └── fix-004-implementation-summary.md
 ```
-
-> The PRD-002, PRD-006, and PRD-010 files previously listed here were removed in an earlier cleanup and are not present on disk. This directory currently holds only this index.
 
 ---
 
