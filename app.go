@@ -296,6 +296,69 @@ func (a *App) SelectPEMOutputFile(defaultFilename string) (string, error) {
 	return filePath, err
 }
 
+// GetClipboard reads text from the Windows clipboard via the htmlfile COM
+// object's clipboardData. Returns empty string on failure.
+func (a *App) GetClipboard() (string, error) {
+	ole.CoInitializeEx(0, ole.COINIT_APARTMENTTHREADED|ole.COINIT_SPEED_OVER_MEMORY)
+	defer ole.CoUninitialize()
+
+	unknown, err := oleutil.CreateObject("htmlfile")
+	if err != nil {
+		return "", fmt.Errorf("create clipboard object: %w", err)
+	}
+	defer unknown.Release()
+
+	disp, err := unknown.QueryInterface(ole.IID_IDispatch)
+	if err != nil {
+		return "", fmt.Errorf("query clipboard interface: %w", err)
+	}
+	defer disp.Release()
+
+	window, err := oleutil.GetProperty(disp, "parentWindow")
+	if err != nil {
+		return "", fmt.Errorf("get clipboard window: %w", err)
+	}
+	defer window.Clear()
+
+	result, err := oleutil.CallMethod(window.ToIDispatch(), "clipboardData.getData", "Text")
+	if err != nil {
+		return "", fmt.Errorf("read clipboard: %w", err)
+	}
+
+	return result.ToString(), nil
+}
+
+// SetClipboard writes text to the Windows clipboard via the htmlfile COM
+// object's clipboardData. Logs but does not crash on failure.
+func (a *App) SetClipboard(text string) error {
+	ole.CoInitializeEx(0, ole.COINIT_APARTMENTTHREADED|ole.COINIT_SPEED_OVER_MEMORY)
+	defer ole.CoUninitialize()
+
+	unknown, err := oleutil.CreateObject("htmlfile")
+	if err != nil {
+		return fmt.Errorf("create clipboard object: %w", err)
+	}
+	defer unknown.Release()
+
+	disp, err := unknown.QueryInterface(ole.IID_IDispatch)
+	if err != nil {
+		return fmt.Errorf("query clipboard interface: %w", err)
+	}
+	defer disp.Release()
+
+	window, err := oleutil.GetProperty(disp, "parentWindow")
+	if err != nil {
+		return fmt.Errorf("get clipboard window: %w", err)
+	}
+	defer window.Clear()
+
+	_, err = oleutil.CallMethod(window.ToIDispatch(), "clipboardData.setData", "Text", text)
+	if err != nil {
+		return fmt.Errorf("write clipboard: %w", err)
+	}
+	return nil
+}
+
 // ConvertPPKToPEM converts a PuTTY .ppk file to OpenSSH PEM format and returns
 // the DPAPI-encrypted PEM content so it can be stored on the connection.
 func (a *App) ConvertPPKToPEM(ppkPath, pemPath, passphrase string) ([]byte, error) {

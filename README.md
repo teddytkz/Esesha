@@ -23,7 +23,7 @@ _Design system reference: [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md)_
 ## Features
 
 - **SSH Connection Manager** — Save connection profiles with encrypted credentials
-- **Interactive Terminal** — Full-featured terminal emulation with xterm.js
+- **Interactive Terminal** — Full-featured terminal emulation with xterm.js, including copy/paste (right-click menu or `Ctrl`+`C` / `Ctrl`+`V`) and full keyboard accessibility
 - **SFTP File Browser** — Browse, download, edit remote files; create files and folders in place from the toolbar
 - **Batch Upload Dialog** — Split-pane upload dialog with multi-select, per-file progress + speed, overall progress, and cancel controls; drag files straight from your OS file explorer into the local pane
 - **System Editor Integration** — Edit remote files with your favorite local editor

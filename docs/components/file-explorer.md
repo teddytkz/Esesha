@@ -12,11 +12,12 @@ Architecture and implementation reference for the `FileExplorer` component, focu
 2. [Toolbar Buttons](#toolbar-buttons)
 3. [Add Button & Creation Dialogs](#add-button--creation-dialogs)
 4. [Dropdown Menu System](#dropdown-menu-system)
-5. [Dialog State Management](#dialog-state-management)
-6. [Validation Logic](#validation-logic)
-7. [Error Handling](#error-handling-approach)
-8. [Backend API Integration](#backend-api-integration)
-9. [Limitations](#limitations)
+5. [Context Menu Positioning](#context-menu-positioning)
+6. [Dialog State Management](#dialog-state-management)
+7. [Validation Logic](#validation-logic)
+8. [Error Handling](#error-handling-approach)
+9. [Backend API Integration](#backend-api-integration)
+10. [Limitations](#limitations)
 
 ---
 
@@ -182,6 +183,22 @@ useEffect(() => {
 
 The menu uses `mousedown` (not `click`) for outside detection so it closes before a subsequent click is processed.
 
+## Context Menu Positioning
+
+The file-grid context menu (opened by right-clicking a file) uses the **same viewport-boundary algorithm as the Terminal** (Fix-003 + Fix-004), so both menus behave identically. It is `position: fixed` at the cursor and a `useLayoutEffect` keyed on `contextMenu` measures the rendered menu and adjusts `menuPosition` **before paint** to avoid flicker.
+
+**Algorithm (5 steps), in order:**
+
+1. **Right edge** — if `x + width > innerWidth - padding`, flip left: `x = cursorX - width`.
+2. **Left edge** — if the flipped `x < padding`, flip back right: `x = cursorX`.
+3. **Bottom edge** — if `y + height > innerHeight - padding`, flip above: `y = cursorY - height`.
+4. **Top edge** — if the flipped `y < padding`, flip back below: `y = cursorY`.
+5. **Final clamp** — `x = clamp(padding, x, innerWidth - width - padding)` (same for `y`), keeping the menu fully visible even when larger than the viewport.
+
+`padding` is `8` px. Steps 1–4 are directional flips; step 5 is a safety net for extreme cases. All 4 corners and all 4 edges are covered. `useLayoutEffect` (not `useEffect`) is used so the corrected position is committed in the same frame the menu appears — no visible flicker.
+
+> **See:** `docs/planning/fix-003-context-menu-positioning.md` and `docs/planning/fix-004-context-menu-edge-refinement.md` for the full fix plans and acceptance criteria.
+
 ---
 
 ## Dialog State Management
@@ -278,4 +295,4 @@ Both are awaited; on success the directory is re-listed via `loadDirectory(curre
 
 ---
 
-**Related:** [File Manager user guide](../user-guide/file-manager.md) · [Upload Dialog Component](upload-dialog.md) · [Changelog](../planning/changelog.md)
+**Related:** [File Manager user guide](../user-guide/file-manager.md) · [Upload Dialog Component](upload-dialog.md) · [Changelog](../planning/changelog.md) · [Fix-003](../planning/fix-003-context-menu-positioning.md) · [Fix-004](../planning/fix-004-context-menu-edge-refinement.md)

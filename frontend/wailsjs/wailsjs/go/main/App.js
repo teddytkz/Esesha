@@ -66,6 +66,10 @@ export function GetActiveSessions() {
   return window['go']['main']['App']['GetActiveSessions']();
 }
 
+export function GetClipboard() {
+  return window['go']['main']['App']['GetClipboard']();
+}
+
 export function GetConnection(arg1) {
   return window['go']['main']['App']['GetConnection'](arg1);
 }
@@ -116,6 +120,10 @@ export function SelectPrivateKeyFile() {
 
 export function SendInput(arg1, arg2) {
   return window['go']['main']['App']['SendInput'](arg1, arg2);
+}
+
+export function SetClipboard(arg1) {
+  return window['go']['main']['App']['SetClipboard'](arg1);
 }
 
 export function UpdateConnection(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {

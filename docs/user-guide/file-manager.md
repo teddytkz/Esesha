@@ -28,6 +28,8 @@ How to browse remote files over SFTP, create folders and files in place, and use
 3. Navigate with **single-click** on folders; **double-click** a file to edit it.
 4. Right-click any item for actions: Download, Upload, Edit, Delete, Rename, Permissions.
 
+> **Always visible:** The right-click menu automatically repositions to stay on screen — right-click near an edge and it flips to the opposite side. Works at any window size and in split view; no action needed.
+
 ## Opening the Upload Dialog
 
 1. With the File Manager open, click the **Upload** button in the toolbar (top-right).

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useMemo, useRef } from 'react';
 import { Upload, RefreshCw, ArrowUp, Edit2, Trash2, FolderOpen, CheckCircle2, AlertTriangle, Info, ChevronRight, Plus, Folder, File as FileIcon } from 'lucide-react';
 import FileItem from './FileItem';
 import FileEditor from './FileEditor';
@@ -55,6 +55,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   const [selectedItem, setSelectedItem] = useState<FileInfo | null>(null);
   const [selectedFileItem, setSelectedFileItem] = useState<FileInfo | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -210,6 +212,36 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
       y: event.clientY
     });
   };
+
+  // Adjust menu position to stay within the viewport before paint
+  useLayoutEffect(() => {
+    if (!contextMenu || !contextMenuRef.current) return;
+    const menuRect = contextMenuRef.current.getBoundingClientRect();
+    const padding = 8;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let x = contextMenu.x;
+    let y = contextMenu.y;
+
+    if (x + menuRect.width > viewportWidth - padding) {
+      x = contextMenu.x - menuRect.width;
+    }
+    if (x < padding) {
+      x = contextMenu.x;
+    }
+    if (y + menuRect.height > viewportHeight - padding) {
+      y = contextMenu.y - menuRect.height;
+    }
+    if (y < padding) {
+      y = contextMenu.y;
+    }
+
+    x = Math.min(Math.max(padding, x), viewportWidth - menuRect.width - padding);
+    y = Math.min(Math.max(padding, y), viewportHeight - menuRect.height - padding);
+
+    setMenuPosition({ x, y });
+  }, [contextMenu]);
 
   const closeContextMenu = () => {
     setContextMenu(null);
@@ -632,7 +664,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
       )}
 
       {contextMenu && selectedItem && (
-        <div className={styles.contextMenu} style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}>
+        <div
+          ref={contextMenuRef}
+          className={styles.contextMenu}
+          style={{ left: `${menuPosition.x}px`, top: `${menuPosition.y}px` }}
+        >
           {!selectedItem.isDir && (
             <button type="button" onClick={() => editFile(selectedItem)}>
               <Edit2 size={16} aria-hidden="true" />

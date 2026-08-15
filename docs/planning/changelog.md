@@ -7,7 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- [2026-08-15] **PRD-016: Terminal Copy/Paste Functionality** — COMPLETE ✅
+  - **Scope:** Add standard copy/paste operations to the terminal component
+  - **Features:**
+    - Copy selected text to the system clipboard (mouse selection + `Ctrl`+`C` / `Ctrl`+`Shift`+`C`, or right-click → Copy)
+    - Paste from the system clipboard at the cursor (`Ctrl`+`V` / `Ctrl`+`Shift`+`V`, or right-click → Paste)
+    - Right-click context menu with Copy (disabled when no selection) and Paste
+    - Keyboard shortcuts accept `Ctrl` (Win/Linux) and `Cmd` (macOS); `Shift` variants included
+    - `Ctrl`+`C` with no selection still sends the terminal interrupt (standard behavior preserved)
+  - **Implementation:**
+    - Clipboard I/O uses the **Wails runtime API** (`ClipboardGetText` / `ClipboardSetText`) — no custom Go backend method, no new dependencies, cross-platform
+    - Frontend: xterm.js selection API (`getSelection`, `hasSelection`, `paste`) + context menu UI + global keyboard handler
+    - UI pattern: reuses `FileExplorer` context menu styling (Mission Control theme tokens)
+  - **Files Modified:** `frontend/src/components/Terminal.tsx`, `frontend/src/components/Terminal.module.css`
+  - **Effort:** ~2-2.5 hours
+  - **Risk:** LOW — all infrastructure already existed (xterm.js, Wails runtime bindings, proven UI patterns)
+  - **Acceptance:** 16/16 criteria passed (including Fix-002 accessibility criteria)
+  - **Docs:** [User guide](../user-guide/terminal.md) · [Component reference](../components/terminal.md)
+  - **See:** `docs/planning/prd-016-terminal-copy-paste.md`
+
 ### Fixed
+
+- [2026-08-15] **Fix-004: Context Menu Top/Left Edge Handling** — COMPLETE ✅
+  - **Severity:** Low
+  - **Issue:** Menu clamped to 8px from top/left edges instead of flipping to opposite direction (Fix-003 refinement)
+  - **Root Cause:** Fix-003 implemented single-direction flipping; did not handle flip-back when flipped position goes negative
+  - **Solution:** Add flip-back logic (if flipped position < padding, flip to opposite direction) — 4 lines added to each of `Terminal.tsx` and `FileExplorer.tsx`
+  - **Files Modified:** `frontend/src/components/Terminal.tsx`, `frontend/src/components/FileExplorer.tsx`
+  - **Impact:** Context menu now handles all 4 corners correctly; never disconnected from cursor
+  - **Effort:** XS (4 lines of code, ~40 minutes total)
+  - **Risk:** Very Low — minimal code change, straightforward logic
+  - **Acceptance:** 12/12 criteria passed (all 4 corners tested, no regressions, Fix-003 behavior preserved)
+  - **Related:** Fix-003 (Context Menu Positioning Bug)
+  - **Docs:** [Terminal component ref](../components/terminal.md) · [FileExplorer component ref](../components/file-explorer.md)
+  - **See:** `docs/planning/fix-004-context-menu-edge-refinement.md`
+
+- [2026-08-15] **Fix-003: Context Menu Positioning Bug** — COMPLETE ✅
+  - **Severity:** Medium
+  - **Issue:** Context menu "Paste" button tenggelam (clipped/hidden) when right-clicking near bottom/right edges of terminal or FileExplorer
+  - **Root Cause:** Context menu uses `position: fixed` with direct cursor coordinates; no viewport boundary detection
+  - **Solution:** Viewport boundary detection algorithm with automatic position adjustment (flip above cursor when insufficient space below, flip left when insufficient space on right) via `useLayoutEffect` (pre-paint, no flicker); 8px edge padding
+  - **Impact:** Both Terminal and FileExplorer affected; fix applies to both components
+  - **Files Modified:** `frontend/src/components/Terminal.tsx`, `frontend/src/components/FileExplorer.tsx`
+  - **Effort:** S (2-3 hours for both components)
+  - **Risk:** Low — standard positioning pattern used by context menu libraries
+  - **Acceptance:** 10/10 criteria passed (viewport edge detection, flip behavior, no visual flicker, cross-component consistency, multiple window sizes)
+  - **Note:** Refined by Fix-004 to add top/left edge flip-back logic
+  - **Docs:** [Terminal component ref](../components/terminal.md) · [FileExplorer component ref](../components/file-explorer.md) · [Terminal user guide](../user-guide/terminal.md)
+  - **See:** `docs/planning/fix-003-context-menu-positioning.md`
+
+- [2026-08-15] **Fix-002: PRD-016 Critical Bugs** — COMPLETE ✅
+  - **Severity:** Critical (bugs blocking PRD-016 completion)
+  - **Issues resolved:**
+    - Bug #1: `Ctrl`+`Shift`+`C` shortcut broken (inverted conditional logic) — fixed
+    - Bug #2: Missing `prefers-reduced-motion` fallback (WCAG 2.1 violation) — added
+    - Bug #3: Context menu not keyboard-accessible (WCAG AA violation) — added auto-focus + arrow-key nav + `Esc`
+    - Bug #4: Context menu min-width inconsistent with FileExplorer (160px vs 190px) — aligned to 190px
+  - **Files Modified:** `frontend/src/components/Terminal.tsx` (conditional + keyboard nav), `frontend/src/components/Terminal.module.css` (motion + width)
+  - **Effort:** ~32 minutes
+  - **Impact:** Resolves critical bugs, restores WCAG 2.1 AA compliance, achieves 16/16 acceptance criteria (100%)
+  - **See:** `docs/planning/fix-002-prd-016-critical-bugs.md`
 
 - [2026-08-15] **Fix-001: PRD-015 Documentation Completion** — Completed 5 remaining documentation tasks from PRD-015
   - Fixed `frontend/src/vite-env.d.ts` — removed Svelte type reference

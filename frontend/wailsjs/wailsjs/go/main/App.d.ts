@@ -36,6 +36,8 @@ export function GetAboutInfo():Promise<Record<string, string>>;
 
 export function GetActiveSessions():Promise<number>;
 
+export function GetClipboard():Promise<string>;
+
 export function GetConnection(arg1:number):Promise<models.Connection>;
 
 export function GetDecryptedPassword(arg1:number):Promise<string>;
@@ -61,6 +63,8 @@ export function SelectPEMOutputFile(arg1:string):Promise<string>;
 export function SelectPrivateKeyFile():Promise<main.PrivateKeyFileResult>;
 
 export function SendInput(arg1:string,arg2:string):Promise<void>;
+
+export function SetClipboard(arg1:string):Promise<void>;
 
 export function UpdateConnection(arg1:number,arg2:string,arg3:string,arg4:number,arg5:string,arg6:string,arg7:string,arg8:Array<number>):Promise<void>;
 

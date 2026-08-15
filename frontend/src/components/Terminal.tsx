@@ -1,9 +1,15 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
+import { ClipboardGetText, ClipboardSetText } from '../../wailsjs/runtime/runtime';
 import styles from './Terminal.module.css';
+
+interface ContextMenuState {
+  x: number;
+  y: number;
+}
 
 interface TerminalProps {
   connectionId: number;
@@ -20,6 +26,40 @@ const Terminal = React.forwardRef<{ disconnect: () => void; clear: () => void },
     const isConnected = useRef(false);
     const onConnectRef = useRef(onConnect);
     const onDisconnectRef = useRef(onDisconnect);
+    const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+    const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+    const [hasSelection, setHasSelection] = useState(false);
+    const contextMenuRef = useRef<HTMLDivElement>(null);
+
+    // Adjust menu position to stay within the viewport before paint
+    useLayoutEffect(() => {
+      if (!contextMenu || !contextMenuRef.current) return;
+      const menuRect = contextMenuRef.current.getBoundingClientRect();
+      const padding = 8;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      let x = contextMenu.x;
+      let y = contextMenu.y;
+
+      if (x + menuRect.width > viewportWidth - padding) {
+        x = contextMenu.x - menuRect.width;
+      }
+      if (x < padding) {
+        x = contextMenu.x;
+      }
+      if (y + menuRect.height > viewportHeight - padding) {
+        y = contextMenu.y - menuRect.height;
+      }
+      if (y < padding) {
+        y = contextMenu.y;
+      }
+
+      x = Math.min(Math.max(padding, x), viewportWidth - menuRect.width - padding);
+      y = Math.min(Math.max(padding, y), viewportHeight - menuRect.height - padding);
+
+      setMenuPosition({ x, y });
+    }, [contextMenu]);
 
     // Keep latest callbacks without re-running xterm setup
     useEffect(() => {
@@ -40,6 +80,105 @@ const Terminal = React.forwardRef<{ disconnect: () => void; clear: () => void },
         }
       }
     }));
+
+    const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
+    const handleCopy = useCallback(async () => {
+      const term = xtermRef.current;
+      if (!term) return;
+      const selection = term.getSelection();
+      if (!selection) return;
+      try {
+        await ClipboardSetText(selection);
+      } catch (err) {
+        console.error('[Terminal] copy failed:', err);
+      }
+      closeContextMenu();
+    }, [closeContextMenu]);
+
+    const handlePaste = useCallback(async () => {
+      const term = xtermRef.current;
+      if (!term) return;
+      try {
+        const text = await ClipboardGetText();
+        if (text) term.paste(text);
+      } catch (err) {
+        console.error('[Terminal] paste failed:', err);
+      }
+      closeContextMenu();
+    }, [closeContextMenu]);
+
+    const handleContextMenu = useCallback((e: React.MouseEvent) => {
+      e.preventDefault();
+      const term = xtermRef.current;
+      setHasSelection(!!term && term.hasSelection());
+      setContextMenu({ x: e.clientX, y: e.clientY });
+    }, []);
+
+    // Keyboard shortcuts: Ctrl+C / Ctrl+Shift+C copy, Ctrl+V / Ctrl+Shift+V paste
+    useEffect(() => {
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (!(e.ctrlKey || e.metaKey)) return;
+        const key = e.key.toLowerCase();
+        if (key !== 'c' && key !== 'v') return;
+        const term = xtermRef.current;
+        if (!term) return;
+        if (key === 'c' && !term.hasSelection()) return;
+        e.preventDefault();
+        if (key === 'c') handleCopy();
+        else handlePaste();
+      };
+      window.addEventListener('keydown', onKeyDown);
+      return () => window.removeEventListener('keydown', onKeyDown);
+    }, [handleCopy, handlePaste]);
+
+    // Close context menu on outside click / Escape
+    useEffect(() => {
+      if (!contextMenu) return;
+      const onDocClick = (e: MouseEvent) => {
+        if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+          closeContextMenu();
+        }
+      };
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') closeContextMenu();
+      };
+      window.addEventListener('click', onDocClick);
+      window.addEventListener('keydown', onKey);
+      return () => {
+        window.removeEventListener('click', onDocClick);
+        window.removeEventListener('keydown', onKey);
+      };
+    }, [contextMenu, closeContextMenu]);
+
+    // Focus first enabled menu item when the context menu opens
+    useEffect(() => {
+      if (!contextMenu) return;
+      const firstButton = contextMenuRef.current?.querySelector<HTMLButtonElement>(
+        'button:not(:disabled)'
+      );
+      firstButton?.focus();
+    }, [contextMenu]);
+
+    const handleMenuKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeContextMenu();
+        return;
+      }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      e.preventDefault();
+      const buttons = Array.from(
+        contextMenuRef.current?.querySelectorAll<HTMLButtonElement>('button') ?? []
+      );
+      if (buttons.length === 0) return;
+      const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
+      const next =
+        e.key === 'ArrowDown'
+          ? (currentIndex + 1) % buttons.length
+          : (currentIndex <= 0 ? buttons.length : currentIndex) - 1;
+      buttons[next].focus();
+    }, [closeContextMenu]);
 
     // Mount-only: create xterm, addons, and event listeners once
     useEffect(() => {
@@ -184,7 +323,33 @@ const Terminal = React.forwardRef<{ disconnect: () => void; clear: () => void },
 
     return (
       <div className={styles.terminalContainer}>
-        <div ref={terminalRef} className={styles.terminal}></div>
+        <div
+          ref={terminalRef}
+          className={styles.terminal}
+          onContextMenu={handleContextMenu}
+        ></div>
+        {contextMenu && (
+          <div
+            ref={contextMenuRef}
+            className={styles.contextMenu}
+            role="menu"
+            tabIndex={-1}
+            onKeyDown={handleMenuKeyDown}
+            style={{ left: `${menuPosition.x}px`, top: `${menuPosition.y}px` }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleCopy}
+              disabled={!hasSelection}
+            >
+              Copy
+            </button>
+            <button type="button" role="menuitem" onClick={handlePaste}>
+              Paste
+            </button>
+          </div>
+        )}
       </div>
     );
   }
