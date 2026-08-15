@@ -24,7 +24,8 @@ _Design system reference: [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md)_
 
 - **SSH Connection Manager** — Save connection profiles with encrypted credentials
 - **Interactive Terminal** — Full-featured terminal emulation with xterm.js
-- **SFTP File Browser** — Browse, upload, download, edit remote files
+- **SFTP File Browser** — Browse, download, edit remote files; create files and folders in place from the toolbar
+- **Batch Upload Dialog** — Split-pane upload dialog with multi-select, per-file progress + speed, overall progress, and cancel controls; drag files straight from your OS file explorer into the local pane
 - **System Editor Integration** — Edit remote files with your favorite local editor
 - **Multi-Session Support** — Connect to multiple servers simultaneously
 - **Native Menu System** — File, Tools, and Help menus with keyboard shortcuts (Ctrl+Q to exit)
@@ -86,11 +87,12 @@ _Design system reference: [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md)_
 2. Navigate the file tree (double-click folders)
 3. Right-click for actions:
    - **Download** — Save to local machine
-   - **Upload** — Choose local file to upload
+   - **Upload** — Choose local file to upload (or use the toolbar **Upload** button for the batch Upload Dialog)
    - **Edit** — Opens in system default editor, auto-uploads on save
    - **Delete** — Remove file or directory
    - **Rename** — Change name
    - **Permissions** — Change chmod
+4. Click the toolbar **Upload** button to open the **Upload Dialog** — add multiple local files, select which to send, watch per-file progress and speed, and cancel individual or all uploads. See [File Manager & Upload Dialog](docs/user-guide/file-manager.md).
 
 ### Converting a PuTTY Key (.ppk → .pem)
 

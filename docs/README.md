@@ -12,6 +12,7 @@ Index of all project documentation. Start here.
 | ----- | -------------- |
 | [PPK to PEM Converter](guides/ppk-converter.md) | Converting PuTTY `.ppk` keys to OpenSSH `.pem` via **Tools → PPK Formatter** — pure-Go, no PuTTY needed, cross-platform |
 | [Secure Private Key Storage](features/secure-key-storage.md) | Fix-011 user guide — keys stored encrypted in the DB, `🔒` indicator, machine-bound limitation, backward compatibility |
+| [File Manager & Upload Dialog](user-guide/file-manager.md) | Browsing remote files and using the batch Upload Dialog — multi-select, progress, speed, cancel, limitations, troubleshooting |
 
 ## Build
 
@@ -36,6 +37,8 @@ Index of all project documentation. Start here.
 | Document | What it covers |
 | -------- | -------------- |
 | [Design System](DESIGN-SYSTEM.md) | "Mission Control" UI reference — palette, typography, spacing, motion, component patterns, contributor rules |
+| [UploadDialog Component](components/upload-dialog.md) | PRD-012 reference — props, local state/refs, `sftp:progress` handling, integration, styling, accessibility |
+| [FileExplorer Component](components/file-explorer.md) | PRD-014 reference — toolbar buttons, Add menu, Create Folder/File dialogs, validation, error handling |
 
 ## Planning
 

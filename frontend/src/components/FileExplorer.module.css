@@ -68,6 +68,87 @@
   opacity: 0.4;
 }
 
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--accent-primary);
+}
+
+.iconButton:active:not(:disabled) {
+  background: var(--bg-active);
+}
+
+.iconButton:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.iconButtonUpload {
+  background: var(--accent-primary);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.iconButtonUpload:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: transparent;
+}
+
+.addMenu {
+  position: absolute;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 180px;
+  z-index: 1000;
+  animation: menuIn 0.15s ease-out;
+}
+
+.addMenu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 4px;
+  text-align: left;
+  font-size: var(--font-size-base);
+}
+
+.addMenu button:hover {
+  background: var(--bg-hover);
+}
+
+.addMenu button:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
 .breadcrumb {
   flex: 1;
   color: var(--text-primary);
@@ -508,6 +589,17 @@
 .dialogInput:focus {
   border-color: var(--border-focus);
   box-shadow: var(--glow-cyan);
+}
+
+.inputError {
+  border-color: var(--error-primary) !important;
+}
+
+.errorText {
+  color: var(--error-primary);
+  font-size: 13px;
+  margin: 4px 0 0 0;
+  padding: 0;
 }
 
 .dialogHint {

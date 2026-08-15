@@ -7,6 +7,101 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+
+### Added
+- [2026-08-15] **PRD-014: File Manager Toolbar Improvements** — COMPLETE ✅
+  - **Status:** ✅ Implemented, reviewed, and documented. All acceptance criteria passed.
+  - **Review verdict:** ⚠️ APPROVED WITH NOTES — all high-priority fixes applied; production ready.
+  - **Completion date:** 2026-08-15
+  - **User request (Indonesian):** Di file manager, untuk button upload dan refresh, dibuat icon saja (remove text labels); tambahkan button Add yang iconnya + (plus sign); jika button Add di-klik, muncul dropdown menu dengan: Create Folder, Create File
+  - **Scope:** MAJOR — UI enhancement to FileExplorer toolbar; icon-only buttons; new Add menu with dropdown; Create Folder/File dialogs
+  - **Summary:** Streamline toolbar with icon-only Upload/Refresh buttons (tooltips for accessibility); add new "Add" button (Plus icon) with dropdown menu for "Create Folder" and "Create File"; inline dialogs with validation; reuses existing `CreateDirectory()` and `WriteFile()` backend APIs
+  - **Features delivered:**
+    1. **Icon-only buttons:** Upload and Refresh display only icons (text labels removed); `title` tooltips for hover; `aria-label` for screen readers
+    2. **Add button:** New button with Plus icon in the toolbar; opens dropdown menu on click; `aria-haspopup="menu"` / `aria-expanded`; disabled while an upload is active
+    3. **Dropdown menu:** Contains "Create Folder" (Folder icon) and "Create File" (File icon); positioned below the Add button; closes on outside click (`mousedown`) or ESC; `role="menu"` / `role="menuitem"`
+    4. **Create Folder:** Inline dialog with validation (no empty, no `/`, `\`, `.`, `..`); calls `CreateDirectory(sessionId, path)`; success toast + directory refresh
+    5. **Create File:** Inline dialog with validation (no empty, no `/`, `\`); calls `WriteFile(sessionId, path, "")` with empty content; success toast + directory refresh
+    6. **Inline error display:** Red text below the input for both validation and backend errors; clears as soon as the user edits
+    7. **Keyboard support:** Enter submits, ESC cancels (dialog and menu); click-outside closes the menu
+  - **Validation rules:**
+    - Folder names: not empty, no `/`, `\`, `.`, or `..`
+    - File names: not empty, no `/`, `\`
+    - Inline errors in red below the input; backend errors also shown inline
+  - **Backend APIs used (no new backend code):**
+    - `CreateDirectory(sessionId, path)` — creates folder
+    - `WriteFile(sessionId, path, "")` — creates empty file
+  - **Technical approach:**
+    - Frontend-only changes (no backend modifications)
+    - Extended existing `DialogState` union with `createFolder` / `createFile` kinds; reused the existing inline `Dialog` component
+    - Reused existing context-menu styling for the dropdown (`styles.addMenu`)
+    - New state: `addMenuOpen` (boolean), `dialogError` (string | null), `addButtonRef` (ref)
+    - Click-outside detection with `useEffect` + `mousedown` document listener; ESC key handling
+    - Path built from `currentPath` and normalized with `.replace(/\/+/g, '/')`
+  - **Files modified:**
+    - `frontend/src/components/FileExplorer.tsx` (~+150 lines) — Add button, dropdown menu, dialogs, validation, backend calls
+    - `frontend/src/components/FileExplorer.module.css` (~+40 lines) — icon-only button sizing, dropdown (`styles.addMenu`) styles, `menuIn` animation
+  - **Design system:** Mission Control palette (cyan `#22d3ee` for primary action); lucide-react icons (`Plus`, `Folder`, `File`); CSS Modules
+  - **Acceptance criteria:** Passed — icon-only buttons, Add button, dropdown, Create Folder, Create File, edge cases (already-exists handling, disabled during upload, dialog reset, validation feedback), and build/accessibility checks
+  - **Limitations:**
+    - Add button disabled during uploads
+    - No nested path creation (single level only — names cannot contain `/` or `\`)
+    - Name conflicts handled by backend error (shown inline)
+  - **Documentation:** User guide at `docs/user-guide/file-manager.md` (Creating Files and Folders), component reference at `docs/components/file-explorer.md`
+  - **Rollback:** < 5 min (revert 2 files, rebuild)
+  - **See:** `docs/planning/prd-014-file-manager-toolbar-improvements.md` (full PRD with 7-phase implementation plan)
+- [2026-08-15] **PRD-013: Upload Dialog — Drag-and-Drop Support + Increased Height** — COMPLETE ✅
+  - **Status:** ✅ Implemented, reviewed, and documented. All 10 acceptance criteria passed.
+  - **Review verdict:** ⚠️ APPROVED WITH NOTES — minor fixes applied post-review; production ready.
+  - **Completion date:** 2026-08-15
+  - **User request (Indonesian):** Tambahkan lebar ke bawah (increase height/vertical space) + buat support drag and drop files (users can drag files into the dialog)
+  - **Scope:** MINOR — Enhancement to existing Upload Dialog (PRD-012); add drag-and-drop file selection + increase dialog height for better visibility
+  - **Features delivered:**
+    1. **Drag-and-drop support:** Drag multiple files from OS file explorer into the local pane → files appended to the list (merged with existing, not replaced)
+    2. **Visual feedback:** Local pane border turns cyan + faint cyan tint while dragging (`.dropping` class, `0.2s ease` transition)
+    3. **Height increase:** Dialog `max-height: 90vh` (was 88vh), file list `min-height: 320px` to show more rows without scrolling
+    4. **Empty state update:** "Drag files here or click 'Add Files'" (was just button instruction)
+    5. **Preserve existing:** "Add Files" button still works; drag-drop disabled during upload (info toast `Cannot add files during upload`)
+  - **Technical approach:**
+    - HTML5 Drag and Drop API: `onDragEnter`, `onDragOver`, `onDragLeave`, `onDrop` events on the local pane `<section>`
+    - Drag counter pattern (`dragCounterRef`) to prevent nested-element flicker — `isDragging` clears only when counter returns to 0
+    - Refactored file input handler: extracted `addFiles(files: File[])` helper, reused for both button and drop; each file gets `crypto.randomUUID()` id + `selected: true`
+    - Type detection via `e.dataTransfer.types.includes('Files')` so only OS file drags activate the highlight
+    - CSS: `.localPane.dropping` class with cyan border + tint (replaces planned `.dropZoneActive`/`.dropZoneDisabled` naming)
+    - Duplicate handling: duplicates allowed (same filename OK, identified by unique `id`)
+  - **Files modified:**
+    - `frontend/src/components/UploadDialog.tsx` — added `isDragging` state, `dragCounterRef`, 4 drag handlers, `addFiles()` helper refactor
+    - `frontend/src/components/UploadDialog.module.css` — added `.localPane`/`.localPane.dropping` styles, increased dialog/pane heights
+  - **Acceptance criteria:** 10/10 passed (drag multiple files, visual feedback, merge behavior, button preserved, empty state updated, height increased, disabled during upload, non-file ignored, drag counter no flicker, TypeScript/Wails build pass)
+  - **Known patterns reused:** FileExplorer drag-drop pattern (drag counter), existing `showToast()` for feedback
+  - **No backend changes:** Frontend-only enhancement, reuses existing file handling logic
+  - **Rollback:** < 5 min (revert 2 files, redeploy)
+  - **Documentation:** User guide at `docs/user-guide/file-manager.md` (Drag-and-Drop section), component reference at `docs/components/upload-dialog.md` (Drag-and-Drop section)
+  - **See:** `docs/planning/prd-013-upload-dialog-drag-drop.md` (full PRD with implementation plan)
+
+- [2026-08-15] **PRD-012: Upload Dialog dengan Multi-Select dan Progress Tracking** — COMPLETE ✅
+  - **Status:** ✅ Implemented, reviewed, and documented. All 15 acceptance criteria passed.
+  - **Review verdict:** ⚠️ APPROVED WITH NOTES — minor fixes applied post-review; production ready.
+  - **User request (Indonesian):** Upload dialog dengan split-pane (local files kiri, remote files kanan), multi-select dengan checkbox, batch upload dengan progress per-file + speed display
+  - **Scope:** MAJOR — New dialog component replacing simple file picker; split-pane layout; multi-select checkbox system; sequential batch upload; per-file progress bars with speed (KB/s, MB/s); overall progress tracking; cancel individual/all uploads; toast notifications
+  - **Architecture:** New `UploadDialog.tsx` component (625 lines) + `UploadDialog.module.css` (~660 lines); reuses FileEditor modal overlay pattern; reuses existing progress tracking event system
+  - **No backend changes:** Reuses existing `UploadFileData()` API and `sftp:progress` events; sequential upload maintained (one file at a time)
+  - **UI:** Split-pane grid layout; local pane with file picker + checkboxes + "Select All" (indeterminate on partial); remote pane with read-only file list; per-file progress bars with speed; overall progress bar "3 / 10 files (450 MB / 1.2 GB)"; cancel buttons per file + "Cancel All"
+  - **State management:** Local component state with `useState` + `useRef`; no global state; upload queue with `UploadState` per file (pending/uploading/completed/error/cancelled)
+  - **Design system:** Mission Control palette (cyan `#22d3ee`); CSS Modules; lucide-react icons; reuses existing progress bar styling
+  - **Features:** Multi-select (checkbox per file + "Select All"); batch upload (sequential, not parallel); progress tracking per file (percentage + speed); overall progress (X/Y files, bytes uploaded/total); cancel individual upload (skip in queue); cancel all uploads; error handling (continue on error); remote pane auto-refresh after each upload; toast summary after completion; ESC-to-close with confirmation while uploads active
+  - **Accessibility:** Keyboard navigation (Tab, ESC, Enter, Space for checkbox); focus management in modal; ARIA labels on all controls; `role="status"`/`role="alert"` live regions; indeterminate checkbox; screen reader support
+  - **Implementation phases:** (1) Component structure + layout, (2) Local file selection + multi-select, (3) Remote files display + refresh, (4) Upload queue + sequential logic, (5) Progress tracking + speed display, (6) Cancel functionality + UI polish, (7) Review + documentation
+  - **Deliverables:**
+    - **Created:** `frontend/src/components/UploadDialog.tsx` (625 lines), `frontend/src/components/UploadDialog.module.css` (~660 lines)
+    - **Modified:** `frontend/src/components/FileExplorer.tsx` (added `uploadDialogOpen` state, toolbar Upload button, conditional `<UploadDialog>` render)
+  - **Known limitations:** Sequential uploads only (not parallel); base64 memory overhead (~33% larger than source); in-progress uploads cannot be aborted mid-stream (only skipped from queue); large files (>200 MB) may cause memory pressure; minimum dialog width 800 px (not mobile-optimized); no folder/directory upload; no resume on connection drop
+  - **Browser/desktop requirements:** Modern Chromium/Firefox/WebKit (Wails webview); requires File API + CSS Grid support; desktop only
+  - **Rollback strategy:** < 10 minutes — revert FileExplorer changes, delete UploadDialog files, re-test existing upload flow
+  - **Documentation:** User guide at `docs/user-guide/file-manager.md`, component reference at `docs/components/upload-dialog.md`
+  - **See:** `docs/planning/prd-012-upload-dialog.md` (full PRD), `docs/planning/PRD-012-IMPLEMENTATION-SUMMARY.md` (implementation summary)
+
 ### Added
 - [2026-08-14] **Fix-011: Store Private Key Content Securely (Not Path)** — ⚠️ APPROVED WITH NOTES
   - **Status:** ✅ Implementation complete, all tests passing (27/27), documentation comprehensive, TypeScript errors fixed during final review

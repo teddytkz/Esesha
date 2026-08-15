@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { Upload, RefreshCw, ArrowUp, Edit2, Trash2, FolderOpen, CheckCircle2, AlertTriangle, Info, ChevronRight } from 'lucide-react';
+import { Upload, RefreshCw, ArrowUp, Edit2, Trash2, FolderOpen, CheckCircle2, AlertTriangle, Info, ChevronRight, Plus, Folder, File as FileIcon } from 'lucide-react';
 import FileItem from './FileItem';
 import FileEditor from './FileEditor';
+import UploadDialog from './UploadDialog';
 import type { SFTPProgressEvent } from '../types/events';
 import styles from './FileExplorer.module.css';
 
@@ -42,6 +43,8 @@ type DialogState =
   | { kind: 'delete'; item: FileInfo }
   | { kind: 'rename'; item: FileInfo }
   | { kind: 'chmod'; item: FileInfo }
+  | { kind: 'createFolder'; item?: FileInfo }
+  | { kind: 'createFile'; item?: FileInfo }
   | null;
 
 const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
@@ -65,6 +68,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
   const [dragTargetItem, setDragTargetItem] = useState<FileInfo | null>(null);
   const [editingPath, setEditingPath] = useState<string | null>(null);
   const [nameSort, setNameSort] = useState<'asc' | 'desc'>('asc');
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const [dialogError, setDialogError] = useState<string | null>(null);
 
   const pathParts = useMemo(() => 
     currentPath.split('/').filter(p => p), 
@@ -120,6 +127,27 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
     window.addEventListener('click', handleClick);
     return () => window.removeEventListener('click', handleClick);
   }, []);
+
+  useEffect(() => {
+    if (!addMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addButtonRef.current && !addButtonRef.current.contains(e.target as Node)) {
+        const menu = document.querySelector(`.${styles.addMenu}`);
+        if (menu && !menu.contains(e.target as Node)) {
+          setAddMenuOpen(false);
+        }
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAddMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [addMenuOpen]);
 
   const showToast = (message: string, type: Toast['type'] = 'info') => {
     if (toastTimerRef.current) {
@@ -267,17 +295,64 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
     }
   };
 
-  const closeDialog = () => setDialog(null);
-
-  const triggerUpload = () => {
-    document.getElementById('file-input')?.click();
+  const closeDialog = () => {
+    setDialog(null);
+    setDialogError(null);
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    await uploadFiles(Array.from(files));
-    event.target.value = '';
+  useEffect(() => {
+    if (!dialog) {
+      setDialogError(null);
+    }
+  }, [dialog]);
+
+  const validateFolderName = (name: string): string | null => {
+    if (!name.trim()) return 'Folder name cannot be empty';
+    if (name.includes('/') || name.includes('\\')) return 'Invalid characters: / \\';
+    if (name === '.' || name === '..') return 'Invalid folder name';
+    return null;
+  };
+
+  const validateFileName = (name: string): string | null => {
+    if (!name.trim()) return 'File name cannot be empty';
+    if (name.includes('/') || name.includes('\\')) return 'Invalid characters: / \\';
+    return null;
+  };
+
+  const handleCreateFolder = async (name: string) => {
+    const error = validateFolderName(name);
+    if (error) {
+      setDialogError(error);
+      return;
+    }
+    setDialogError(null);
+    try {
+      const newPath = `${currentPath}/${name}`.replace(/\/+/g, '/');
+      await window.go.main.App.CreateDirectory(sessionId, newPath);
+      showToast(`Folder "${name}" created`, 'success');
+      setDialog(null);
+      loadDirectory(currentPath);
+    } catch (err) {
+      setDialogError(`Failed to create folder: ${err}`);
+    }
+  };
+
+  const handleCreateFile = async (name: string) => {
+    const error = validateFileName(name);
+    if (error) {
+      setDialogError(error);
+      return;
+    }
+    setDialogError(null);
+    try {
+      const newPath = `${currentPath}/${name}`.replace(/\/+/g, '/');
+      await window.go.main.App.WriteFile(sessionId, newPath, '');
+      showToast(`File "${name}" created`, 'success');
+      setDialog(null);
+      loadDirectory(currentPath);
+    } catch (err) {
+      setDialogError(`Failed to create file: ${err}`);
+    }
   };
 
   const handleDrop = async (event: React.DragEvent) => {
@@ -404,23 +479,71 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
             </React.Fragment>
           ))}
         </div>
-        <button type="button" className={`${styles.btn} ${styles.btnUpload}`} onClick={triggerUpload} aria-label="Upload file">
-          <Upload size={16} aria-hidden="true" />
-          Upload
+        <button
+          ref={addButtonRef}
+          type="button"
+          className={styles.iconButton}
+          onClick={() => setAddMenuOpen(!addMenuOpen)}
+          title="Add"
+          aria-label="Create folder or file"
+          aria-haspopup="menu"
+          aria-expanded={addMenuOpen}
+          disabled={uploadActive}
+        >
+          <Plus size={20} aria-hidden="true" />
         </button>
-        <button type="button" className={styles.btn} onClick={() => loadDirectory(currentPath)} aria-label="Refresh directory">
-          <RefreshCw size={16} aria-hidden="true" />
-          Refresh
+        {addMenuOpen && (
+          <div
+            className={styles.addMenu}
+            role="menu"
+            style={{
+              top: addButtonRef.current ? addButtonRef.current.offsetTop + addButtonRef.current.offsetHeight + 4 : 0,
+              left: addButtonRef.current ? addButtonRef.current.offsetLeft : 0,
+            }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setAddMenuOpen(false);
+                setDialog({ kind: 'createFolder' });
+              }}
+            >
+              <Folder size={16} aria-hidden="true" />
+              Create Folder
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setAddMenuOpen(false);
+                setDialog({ kind: 'createFile' });
+              }}
+            >
+              <FileIcon size={16} aria-hidden="true" />
+              Create File
+            </button>
+          </div>
+        )}
+        <button
+          type="button"
+          className={`${styles.iconButton} ${styles.iconButtonUpload}`}
+          onClick={() => setUploadDialogOpen(true)}
+          title="Upload files"
+          aria-label="Upload files"
+        >
+          <Upload size={20} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className={styles.iconButton}
+          onClick={() => loadDirectory(currentPath)}
+          title="Refresh directory"
+          aria-label="Refresh directory"
+        >
+          <RefreshCw size={20} aria-hidden="true" />
         </button>
       </div>
-
-      <input 
-        type="file" 
-        id="file-input" 
-        style={{ display: 'none' }} 
-        onChange={handleFileSelect}
-        multiple
-      />
 
       <div 
         className={`${styles.fileList} ${dragOver ? styles.dragOver : ''}`}
@@ -547,31 +670,52 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
         </div>
       )}
 
-      {dialog && (
-        <Dialog
-          key={`${dialog.kind}-${dialog.item.name}`}
-          kind={dialog.kind}
-          item={dialog.item}
-          onConfirm={dialog.kind === 'delete'
-            ? () => confirmDelete(dialog.item)
-            : dialog.kind === 'rename'
-              ? (value?: string) => confirmRename(dialog.item, value ?? '')
-              : (value?: string) => confirmChmod(dialog.item, value ?? '')}
-          onCancel={closeDialog}
+      {uploadDialogOpen && (
+        <UploadDialog
+          isOpen={uploadDialogOpen}
+          sessionId={sessionId}
+          currentRemotePath={currentPath}
+          onClose={() => setUploadDialogOpen(false)}
+          onUploadComplete={() => loadDirectory(currentPathRef.current)}
         />
       )}
+
+      {dialog && (() => {
+        const dlgItem = dialog.item;
+        return (
+        <Dialog
+          key={`${dialog.kind}-${dlgItem?.name ?? ''}`}
+          kind={dialog.kind}
+          item={dlgItem}
+          error={dialogError}
+          onErrorClear={() => setDialogError(null)}
+          onConfirm={dialog.kind === 'delete'
+            ? () => confirmDelete(dlgItem!)
+            : dialog.kind === 'rename'
+              ? (value?: string) => confirmRename(dlgItem!, value ?? '')
+              : dialog.kind === 'chmod'
+                ? (value?: string) => confirmChmod(dlgItem!, value ?? '')
+                : dialog.kind === 'createFolder'
+                  ? (value?: string) => handleCreateFolder(value ?? '')
+                  : (value?: string) => handleCreateFile(value ?? '')}
+          onCancel={closeDialog}
+        />
+        );
+      })()}
     </div>
   );
 };
 
 interface DialogProps {
-  kind: 'delete' | 'rename' | 'chmod';
-  item: FileInfo;
+  kind: 'delete' | 'rename' | 'chmod' | 'createFolder' | 'createFile';
+  item?: FileInfo;
+  error?: string | null;
+  onErrorClear?: () => void;
   onConfirm: (value?: string) => void;
   onCancel: () => void;
 }
 
-const Dialog: React.FC<DialogProps> = ({ kind, item, onConfirm, onCancel }) => {
+const Dialog: React.FC<DialogProps> = ({ kind, item, error, onErrorClear, onConfirm, onCancel }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -595,27 +739,39 @@ const Dialog: React.FC<DialogProps> = ({ kind, item, onConfirm, onCancel }) => {
   const title = kind === 'delete'
     ? 'Delete file?'
     : kind === 'rename'
-      ? `Rename "${item.name}"`
-      : `Change permissions for "${item.name}"`;
+      ? `Rename "${item?.name}"`
+      : kind === 'chmod'
+        ? `Change permissions for "${item?.name}"`
+        : kind === 'createFolder'
+          ? 'Create Folder'
+          : 'Create File';
 
   const message = kind === 'delete'
-    ? `This will permanently remove "${item.name}". This action cannot be undone.`
+    ? `This will permanently remove "${item?.name}". This action cannot be undone.`
     : kind === 'rename'
       ? 'Enter a new name for this item.'
-      : 'Set new permissions in octal notation.';
+      : kind === 'chmod'
+        ? 'Set new permissions in octal notation.'
+        : kind === 'createFolder'
+          ? 'Enter a name for the new folder.'
+          : 'Enter a name for the new file.';
 
-  const confirmLabel = kind === 'delete' ? 'Delete' : kind === 'rename' ? 'Rename' : 'Apply';
+  const confirmLabel = kind === 'delete' ? 'Delete' : kind === 'rename' ? 'Rename' : kind === 'chmod' ? 'Apply' : 'Create';
 
   return (
     <div
       className={styles.dialogOverlay}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="dialog-title"
-      aria-describedby="dialog-message"
+      role="presentation"
       onClick={onCancel}
     >
-      <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dialog-title"
+        aria-describedby="dialog-message"
+        onClick={(e) => e.stopPropagation()}
+      >
         {kind === 'delete' && (
           <AlertTriangle size={24} className={styles.dialogIconDanger} aria-hidden="true" />
         )}
@@ -625,13 +781,21 @@ const Dialog: React.FC<DialogProps> = ({ kind, item, onConfirm, onCancel }) => {
           <input
             ref={inputRef}
             type="text"
-            className={styles.dialogInput}
-            defaultValue={kind === 'rename' ? item.name : ''}
-            placeholder={kind === 'chmod' ? '755' : undefined}
+            className={`${styles.dialogInput}${error ? ` ${styles.inputError}` : ''}`}
+            defaultValue={kind === 'rename' ? item?.name : ''}
+            placeholder={kind === 'chmod' ? '755' : kind === 'createFolder' ? 'Folder name' : 'File name'}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? 'dialog-error' : undefined}
+            onChange={() => onErrorClear?.()}
             onKeyDown={(e) => {
               if (e.key === 'Enter') onConfirm((e.target as HTMLInputElement).value);
             }}
           />
+        )}
+        {error && (
+          <p id="dialog-error" className={styles.errorText} role="alert">
+            {error}
+          </p>
         )}
         {kind === 'chmod' && (
           <span className={styles.dialogHint}>Octal permissions, e.g. 755</span>
