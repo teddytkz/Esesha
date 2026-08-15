@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 echo Building Esesha SSH Manager...
 echo.
 

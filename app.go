@@ -609,6 +609,7 @@ func (a *App) ChangePermissions(sessionID, path string, mode uint32) error {
 	return sftpClient.ChangePermissions(path, os.FileMode(mode))
 }
 
+// Deprecated: Use internal/editor.Manager.EditFile instead. Kept for API compatibility.
 // EditFile downloads remote file, opens in editor, watches for changes and auto-uploads
 func (a *App) EditFile(sessionID, remotePath string) error {
 	if a.editorManager == nil {

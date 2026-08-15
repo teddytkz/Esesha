@@ -335,7 +335,7 @@ const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
 | 5.1  | Documentation | Update `docs/components/upload-dialog.md`: add drag-drop usage section with screenshots/GIFs                        |
 | 5.2  | Documentation | Update `docs/user-guide/file-manager.md`: mention drag-drop as alternative to "Add Files" button                    |
 | 5.3  | Documentation | Update `docs/planning/changelog.md`: add PRD-013 entry                                                              |
-| 5.4  | Documentation | Create `docs/planning/PRD-013-IMPLEMENTATION-SUMMARY.md` with deliverables, files changed, acceptance criteria pass |
+| 5.4  | Documentation | Create `docs/planning/prd-013-implementation-summary.md` with deliverables, files changed, acceptance criteria pass |
 
 ---
 

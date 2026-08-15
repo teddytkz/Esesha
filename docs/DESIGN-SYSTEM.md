@@ -1,6 +1,6 @@
-# Esesha Design System — "Mission Control"
+# Esesha Design System — "Professional Monochrome"
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-15
 **Applies to:** `frontend/src/**` (all component styling)
 **Introduced in:** PRD-004 Futuristic UI Redesign — see [prd-004-futuristic-ui-redesign.md](planning/prd-004-futuristic-ui-redesign.md)
 **Purpose:** The single reference for Esesha's visual identity — colors, typography, spacing, component patterns, and motion. Everything documented here is the *actual* state of the code; if code and this doc disagree, the code wins — update this doc.
@@ -22,16 +22,16 @@
 
 ## Overview
 
-PRD-004 replaced the VS Code-clone aesthetic (`#1e1e1e` flat surfaces, `#0e639c` blue accent) with a futuristic **"Mission Control"** identity — a deep space-navy base with cyan/violet accents, built for a network operations console. The redesign is **frontend-only** (5 files: `global.css` + 4 component `.tsx`/`.module.css` pairs), preserves the React + CSS Modules architecture, and adds no new dependencies.
+PRD-004 replaced the VS Code-clone aesthetic (`#1e1e1e` flat surfaces, `#0e639c` blue accent) with a clean **"Professional Monochrome"** identity — a slate-navy base with a single blue accent, built for a focused SSH/SFTP operations console. The redesign is **frontend-only** (5 files: `global.css` + 4 component `.tsx`/`.module.css` pairs), preserves the React + CSS Modules architecture, and adds no new dependencies.
 
-The visual language is deliberately **disciplined**: exactly one animated element (the connection status bar) plus loading/entrance micro-animations — everything else stays quiet so the interface reads as instrumentation, not a generic SaaS template.
+The visual language is deliberately **disciplined**: exactly one animated element (the connection status bar) plus loading/entrance micro-animations — everything else stays quiet so the interface reads as a professional tool, not a generic SaaS template.
 
 ## Design Principles
 
-1. **Deep space, not hacker green** — near-black + acid-green is the cliché "futuristic" look; Esesha uses space-navy + cyan-teal + violet instead.
+1. **Monochrome base, single accent** — slate surfaces in graduated steps (`slate-900` → `slate-600`) with one blue accent (`blue-500`) for primary actions and active states. No competing hues.
 2. **One signature animated element** — the connection status bar. Additional motion (skeletons, spinners, toasts) is functional feedback, never decoration.
 3. **Technical identity through typography** — monospace everywhere data lives (`user@host:port`, file sizes, permissions, breadcrumbs, status text).
-4. **Quiet surfaces, glowing accents** — muted navy surfaces; glow shadows are reserved for active, primary, and danger elements.
+4. **Quiet surfaces, restrained accents** — muted slate surfaces; the blue accent and glow shadows are reserved for active, primary, and danger elements.
 5. **Accessibility is part of the design** — every animation has a `prefers-reduced-motion` fallback; every interactive element has a visible focus ring.
 
 ## Color Palette
@@ -42,55 +42,52 @@ All tokens are defined in `:root` in `frontend/src/styles/global.css`. **Raw hex
 
 | Token | Value | Usage |
 | ----- | ----- | ----- |
-| `--bg-primary` | `#0a0e1a` | App background — deep space navy |
-| `--bg-secondary` | `#0f1524` | Sidebar, toolbars, content headers, scrollbar track |
-| `--bg-tertiary` | `#161e33` | Cards, connection items, buttons, inputs, menus, dialogs, toasts |
-| `--bg-hover` | `#1b2440` | Hover surfaces (rows, buttons, crumbs) |
-| `--bg-active` | `#0e2a3a` | Active connection card / active tab |
-| `--bg-overlay` | `rgba(4, 8, 20, 0.72)` | Modal / dialog scrim |
-| `--bg-scanline` | `rgba(34, 211, 238, 0.02)` | Scanline accent tint (base alpha; the sidebar texture uses its own gradient alphas) |
+| `--bg-primary` | `#0f172a` | App background — slate 900 |
+| `--bg-secondary` | `#1e293b` | Sidebar, toolbars, content headers, scrollbar track — slate 800 |
+| `--bg-tertiary` | `#334155` | Cards, connection items, buttons, inputs, menus, dialogs, toasts — slate 700 |
+| `--bg-hover` | `#475569` | Hover surfaces (rows, buttons, crumbs) — slate 600 |
+| `--bg-active` | `#1e40af` | Active connection card / active tab — blue 700 |
+| `--bg-overlay` | `rgba(15, 23, 42, 0.85)` | Modal / dialog scrim |
 
 ### Borders
 
 | Token | Value | Usage |
 | ----- | ----- | ----- |
-| `--border-default` | `#232c45` | Default borders — also the idle status bar color |
-| `--border-subtle` | `#1a2238` | Very quiet dividers (e.g., between skeleton rows) |
-| `--border-focus` | `#22d3ee` | Focus rings (`outline: 2px solid var(--border-focus)`) |
+| `--border-default` | `#334155` | Default borders — slate 700 |
+| `--border-subtle` | `#1e293b` | Very quiet dividers — slate 800 |
+| `--border-focus` | `#3b82f6` | Focus rings (`outline: 2px solid var(--border-focus)`) — blue 500 |
 
 ### Text
 
 | Token | Value | Usage |
 | ----- | ----- | ----- |
-| `--text-primary` | `#e2e8f0` | Primary text (~15.6:1 contrast on `--bg-primary`) |
-| `--text-secondary` | `#94a3b8` | Secondary text, descriptions (~7.5:1 contrast) |
-| `--text-tertiary` | `#64748b` | Muted/technical labels — **non-essential only** (~4.1:1, below AA for normal text; never use for critical info) |
+| `--text-primary` | `#f1f5f9` | Primary text |
+| `--text-secondary` | `#cbd5e1` | Secondary text, descriptions |
+| `--text-tertiary` | `#94a3b8` | Muted/technical labels — **non-essential only** (never use for critical info) |
 
 ### Accents
 
 | Token | Value | Usage |
 | ----- | ----- | ----- |
-| `--accent-primary` | `#22d3ee` | Cyan — primary actions, active states, focus, brand gradient start |
-| `--accent-hover` | `#67e8f9` | Cyan hover |
-| `--accent-active` | `#0ea5b7` | Cyan pressed |
-| `--accent-secondary` | `#8b5cf6` | Violet — secondary accents, brand gradient end, progress gradient end |
-| `--accent-secondary-hover` | `#a78bfa` | Violet hover |
+| `--accent-primary` | `#3b82f6` | Blue 500 — primary actions, active states, focus |
+| `--accent-hover` | `#60a5fa` | Blue 400 hover |
+| `--accent-active` | `#2563eb` | Blue 600 pressed |
+| `--accent-muted` | `#1e40af` | Blue 700 — subtle accents |
 
 ### Semantic
 
 | Token | Value | Usage |
 | ----- | ----- | ----- |
-| `--color-success` | `#34d399` | Success — connected state, success toast |
-| `--color-warning` | `#fbbf24` | Warning |
-| `--color-danger` | `#f87171` | Danger — error state, delete actions, error toast, disconnect |
-| `--color-danger-hover` | `#ef4444` | Danger hover (solid fill) |
-| `--color-danger-bg` | `#3b1d24` | Danger surface (danger buttons, delete hover) |
-| `--color-danger-border` | `#5c2b38` | Danger borders |
+| `--color-success` | `#10b981` | Success — connected state, success toast |
+| `--color-warning` | `#f59e0b` | Warning |
+| `--color-danger` | `#ef4444` | Danger — error state, delete actions, error toast, disconnect |
+| `--color-danger-hover` | `#dc2626` | Danger hover (solid fill) |
+| `--color-danger-bg` | `#450a0a` | Danger surface (danger buttons, delete hover) |
+| `--color-danger-border` | `#7f1d1d` | Danger borders |
 
 ### When to use what — quick rules
 
-- **Cyan is the single primary action color.** Add Connection, Upload, dialog confirm. Text on cyan buttons is `#04121a` (dark, ~10.5:1 contrast).
-- **Violet is for secondary/ambient accents only** — the brand gradient, the connecting pulse, the progress fill gradient. Never a primary button.
+- **Blue is the single primary action color.** Add Connection, Upload, dialog confirm. Text on blue buttons is white.
 - **Green = connected/success, red = error/danger, amber = warning.** Do not invent new semantic colors.
 - **`--text-tertiary` is for metadata and placeholder copy**, never for actionable information.
 
@@ -151,12 +148,10 @@ The file list uses a fixed grid for column alignment across header and rows (see
 
 | Token | Value | Usage |
 | ----- | ----- | ----- |
-| `--shadow-sm` | `0 1px 3px rgba(2, 6, 18, 0.5)` | Resting cards |
-| `--shadow-md` | `0 4px 12px rgba(2, 6, 18, 0.55)` | Hover elevation |
-| `--shadow-lg` | `0 12px 32px rgba(2, 6, 18, 0.6)` | Modals, menus, toasts |
-| `--glow-cyan` | `0 0 12px rgba(34, 211, 238, 0.35)` | Active card, primary hover, focus inputs |
-| `--glow-cyan-strong` | `0 0 20px rgba(34, 211, 238, 0.5)` | Connected status bar, active terminal wrapper |
-| `--glow-violet` | `0 0 12px rgba(139, 92, 246, 0.35)` | Violet accents |
+| `--shadow-sm` | `0 1px 2px rgba(0, 0, 0, 0.05)` | Resting cards |
+| `--shadow-md` | `0 4px 6px rgba(0, 0, 0, 0.1)` | Hover elevation |
+| `--shadow-lg` | `0 20px 25px rgba(0, 0, 0, 0.15)` | Modals, menus, toasts |
+| `--shadow-focus` | `0 0 0 3px rgba(59, 130, 246, 0.1)` | Focus ring shadow — blue 500 |
 | `--glow-danger` | `0 0 12px rgba(248, 113, 113, 0.4)` | Error status bar, danger hover |
 
 **Glow rule:** glow is a *state signal* — active, primary hover, connected, error. Never apply glow to idle/resting elements.
@@ -189,7 +184,7 @@ Three layers, all implemented:
 
 1. **Global override** (`global.css`): all `animation-duration` → 0.01ms, `animation-iteration-count` → 1, `transition-duration` → 0.01ms.
 2. **Skeleton static fallback** (`global.css`): `.skeleton { animation: none; background: var(--bg-tertiary); }`.
-3. **Status bar static fallback** (`App.module.css`): `.statusConnecting` drops the pulse and renders a static cyan→violet gradient.
+3. **Status bar static fallback** (`App.module.css`): `.statusConnecting` drops the pulse and renders a static blue gradient.
 
 **Rule:** any new keyframe that carries meaning (not just polish) needs a static visual fallback *inside its component*, because the global override only kills the animation — it doesn't tell the element what static state to render.
 
@@ -201,7 +196,7 @@ Four variants, all `<button type="button">`:
 
 | Variant | Classes | Look |
 | ------- | ------- | ---- |
-| Primary (cyan) | `btnAdd`, `btnUpload`, `dialogBtnPrimary` | `--accent-primary` bg, `#04121a` text, glow on hover |
+| Primary (blue) | `btnAdd`, `btnUpload`, `dialogBtnPrimary` | `--accent-primary` bg, white text, glow on hover |
 | Secondary | `btn`, `btnRefresh`, `dialogBtn` | `--bg-tertiary` bg, `--border-default` border |
 | Danger | `btnRetry`, `dialogBtnDanger` | `--color-danger-bg` bg, `--color-danger` text/border |
 | Ghost text | `btnClose` (Disconnect) | Transparent, `--color-danger` text |
@@ -213,7 +208,7 @@ All buttons share: `--radius-md`, `:focus-visible` outline (2px `--border-focus`
 ### Connection Cards (sidebar)
 
 - Container: `--bg-tertiary`, `--radius-md`, `--shadow-sm`; hover: `--bg-hover`, border `#2e3a5e`, translateY(-1px) with `--ease-spring`.
-- **Active card:** `--bg-active`, cyan border, **3px cyan left-border indicator**, `--glow-cyan`.
+- **Active card:** `--bg-active`, blue border, **3px blue left-border indicator**, `--shadow-focus`.
 - Contents: 8px status dot (slate = idle) + `connName` (`--font-display`, semibold) + `connDetails` (`--font-mono`, `user@host:port`).
 - Cards are `<button>`s, disabled while a connection is active.
 
@@ -223,16 +218,16 @@ A 3px strip (`--status-bar-height`) at the top of the main content area. Four st
 
 | State | Class | Visual |
 | ----- | ----- | ------ |
-| Idle (no connection) | `statusIdle` | Static `#232c45` |
-| Connecting | `statusConnecting` | Animated cyan→violet gradient pulse (`status-pulse`), `--glow-cyan` |
-| Connected | `statusConnected` | Static cyan + `--glow-cyan-strong` |
+| Idle (no connection) | `statusIdle` | Static `--border-default` (`#334155`) |
+| Connecting | `statusConnecting` | Animated blue gradient pulse (`status-pulse`), `--shadow-focus` |
+| Connected | `statusConnected` | Static `--accent-primary` + `--shadow-focus` |
 | Error | `statusError` | Static `--color-danger` + `--glow-danger` |
 
 **Known limitation:** the `error` state is currently unreachable — `sessionId` and `activeConnection` are always set/cleared together, so the derivation `!activeConnection && sessionId` never fires. A failed connect leaves the bar pulsing `connecting` indefinitely. Tracked in [known-issues.md](guides/known-issues.md) (deferred, non-blocking).
 
 ### Modal & Dialogs
 
-**Add-connection modal** (`App.tsx`): overlay (`--bg-overlay` + `backdrop-filter: blur(3px)`) → content card (500px, `--radius-lg`, `--shadow-lg`) with a 1px cyan→violet gradient accent line at the top. `role="dialog"`, `aria-modal="true"`, `aria-labelledby`. Escape or overlay click closes; content click `stopPropagation`.
+**Add-connection modal** (`App.tsx`): overlay (`--bg-overlay` + `backdrop-filter: blur(3px)`) → content card (500px, `--radius-lg`, `--shadow-lg`) with a 1px blue accent line at the top. `role="dialog"`, `aria-modal="true"`, `aria-labelledby`. Escape or overlay click closes; content click `stopPropagation`.
 
 **File dialogs** (delete / rename / chmod — `Dialog` component inside `FileExplorer.tsx`): same overlay pattern, 380px card.
 
@@ -251,7 +246,7 @@ A 3px strip (`--status-bar-height`) at the top of the main content area. Four st
 | File list | `FolderOpen` (40px) | "Empty directory" | "No files or folders here. Upload something or navigate elsewhere." |
 | Main area (no connection) | `Server` (48px) | "Awaiting connection" | Mono subtitle "Ready · select a host from the sidebar" |
 
-Pattern: icon (slate, subtle cyan drop-shadow) → `--font-display` semibold heading → `--text-secondary` body → optional CTA button.
+Pattern: icon (slate, subtle blue drop-shadow) → `--font-display` semibold heading → `--text-secondary` body → optional CTA button.
 
 ### Loading Skeletons
 
@@ -272,23 +267,19 @@ Fixed at cursor position (`position: fixed`, `left/top` from mouse event), `--bg
 
 ### Upload Progress Bar
 
-Absolute bottom strip (28px) over the file list: track `--bg-secondary`, fill is a cyan→violet gradient with `--glow-cyan`, percentage text in `--font-mono`. Width driven inline from the `sftp:progress` event.
+Absolute bottom strip (28px) over the file list: track `--bg-secondary`, fill is a blue gradient with `--shadow-focus`, percentage text in `--font-mono`. Width driven inline from the `sftp:progress` event.
 
 ### File List & Rows
 
 - **Column template (shared):** `32px 1fr 90px 110px 170px` (icon, name, size, perms, modified) — defined identically in `.listHeader`, `.skeletonRow`, and `.fileItem`; keep in sync.
 - Sticky header: `--bg-secondary`, uppercase mono 11px labels with letter-spacing.
-- Rows: rounded hover bg + **inset 3px cyan left accent** (`box-shadow: inset 3px 0 0 var(--accent-primary)`); directories are semibold; size/perms/modified in `--font-mono`.
-- Icons: folder `#22d3ee` (== `--accent-primary`), file `#64748b` (== `--text-tertiary`).
+- Rows: rounded hover bg + **inset 3px blue left accent** (`box-shadow: inset 3px 0 0 var(--accent-primary)`); directories are semibold; size/perms/modified in `--font-mono`.
+- Icons: folder `#3b82f6` (== `--accent-primary`), file `#94a3b8` (== `--text-tertiary`).
 - **Keyboard:** rows are `role="row"`, `tabIndex={0}`, Enter = open/edit, Delete = delete (opens the dialog).
 
 ### Terminal Container
 
-`Terminal.module.css`: `--bg-primary` + `--border-default` + `--radius-lg`, 12px padding. The active wrapper (`terminalWrapperActive` in `App.module.css`) adds a translucent cyan border + `--glow-cyan`. The xterm theme object in `Terminal.tsx` mirrors the palette (`background: #0a0e1a`, `foreground: #e2e8f0`, cursor/selection cyan, ANSI colors mapped to semantic tokens).
-
-### Scanline Texture
-
-Sidebar-only decorative layer via `.sidebar::before` (pointer-events none): a horizontal grid line + a 4px repeating scanline, both at 1.5–2.5% cyan alpha. Subtle by design — should never be legible as a pattern.
+`Terminal.module.css`: `--bg-primary` + `--border-default` + `--radius-lg`, 12px padding. The active wrapper (`terminalWrapperActive` in `App.module.css`) adds a translucent blue border + `--shadow-focus`. The xterm theme object in `Terminal.tsx` mirrors the palette (`background: #0f172a`, `foreground: #f1f5f9`, cursor/selection blue, ANSI colors mapped to semantic tokens).
 
 ## Global Utilities
 
@@ -296,13 +287,13 @@ Defined in `global.css`:
 
 - `.skeleton` — shimmer loading cell (see [Loading Skeletons](#loading-skeletons)).
 - `@font-face` Nunito (bundled woff2 — do not add fonts).
-- Custom scrollbar (10px, `--bg-secondary` track, `#232c45` thumb, `#2e3a5e` hover) — Windows Chromium only.
+- Custom scrollbar (10px, `--bg-secondary` track, `#334155` thumb, `#2e3a5e` hover) — Windows Chromium only.
 - Reduced-motion global override.
 - `html, body` reset: 0 margin, `overflow: hidden` (desktop-only app, no page scroll).
 
 ## Rules for Contributors
 
-1. **Raw hex only in `global.css`.** Component CSS uses tokens. Documented exceptions: `#2e3a5e` (hover border), `#04121a` (text on cyan), icon colors in `FileItem.tsx` (`#22d3ee`, `#64748b`).
+1. **Raw hex only in `global.css`.** Component CSS uses tokens. Documented exceptions: `#2e3a5e` (hover border), icon colors in `FileItem.tsx` (`#3b82f6`, `#94a3b8`).
 2. **No new CSS frameworks** (no Tailwind, shadcn, styled-components) — CSS Modules + tokens only.
 3. **No new icon libraries** — lucide-react only; decorative icons get `aria-hidden="true"`.
 4. **No new fonts** — reuse the bundled Nunito.

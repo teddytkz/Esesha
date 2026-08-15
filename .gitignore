@@ -1,5 +1,19 @@
-build/bin
-node_modules
-frontend/dist
+# Build artifacts and backups
+build/bin/
+*.bak
+*.tmp
+*.log
+*.md5
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/.cache/
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Binaries and native resources
 *.exe
 *.syso

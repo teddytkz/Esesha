@@ -177,7 +177,7 @@
 1. Update `docs/components/upload-dialog.md` (add drag-drop usage)
 2. Update `docs/user-guide/file-manager.md` (mention drag-drop alternative)
 3. Update `docs/planning/changelog.md` (add PRD-013 entry) ✅ **DONE**
-4. This file (`PRD-013-IMPLEMENTATION-SUMMARY.md`) ✅ **DONE**
+4. This file (`prd-013-implementation-summary.md`) ✅ **DONE**
 
 ---
 

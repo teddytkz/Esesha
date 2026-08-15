@@ -7,7 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- [2026-08-15] **Fix-001: PRD-015 Documentation Completion** — Completed 5 remaining documentation tasks from PRD-015
+  - Fixed `frontend/src/vite-env.d.ts` — removed Svelte type reference
+  - Replaced `frontend/README.md` — updated from Svelte template to React + Vite + Wails documentation
+  - Updated `docs/DESIGN-SYSTEM.md` — corrected color palette to match actual code (Professional Monochrome)
+  - Fixed `docs/planning/archive/README.md` — noted PRD-002/006/010 were deleted, not archived
+  - Renamed 8 uppercase PRD files to lowercase for consistency
+  - **Impact:** Resolves documentation accuracy issues; achieves 100% PRD-015 completion
+  - **Files:** 6 modified, 8 renamed
+  - **See:** `docs/planning/fix-001-prd-015-documentation-completion.md`
+
 ### Planned
+
+- [2026-08-15] **PRD-015: Project Cleanup and Optimization** — PLANNED 📋
+  - **Priority:** Critical (3) + High (4) + Medium (3) = 10 issues from Explorer audit
+  - **Scope:** Non-functional maintenance — template artifact removal, documentation sync, configuration completeness, code documentation
+  - **Issues Addressed:**
+    - **Critical:** Svelte template remnants in React project (`frontend/README.md`, `vite-env.d.ts`), design system color mismatch
+    - **High:** Missing Wails config paths, build script robustness (`setlocal`), gitignore gaps, PRD archive structure
+    - **Medium:** Unmarked deprecated API, PRD naming consistency, unclear `package.json.md5` purpose
+  - **Impact:** Improved documentation trustworthiness, build reliability, developer experience
+  - **Files Modified:**
+    - `frontend/README.md` — Replace Svelte docs with React + Vite + Wails overview
+    - `frontend/src/vite-env.d.ts` — Remove Svelte type reference
+    - `docs/DESIGN-SYSTEM.md` — Sync color palette to match `global.css` actual values
+    - `wails.json` — Add explicit `frontendDir`, `wailsjsdir`, platform config
+    - `build.bat` — Add `setlocal enabledelayedexpansion`
+    - `.gitignore` — Add `*.bak`, `*.md5`, `build/`, `frontend/dist/`
+    - `docs/planning/archive/` — Create archive, move superseded PRD-002, PRD-006, PRD-010
+    - `app.go` — Add deprecation comment to EditFile() method
+    - `docs/planning/PRD-01X-*.md` — Rename to lowercase `prd-0XX-*.md` for consistency
+    - `frontend/package.json.md5` — Document purpose or add to gitignore
+  - **Preserved Intentionally:** `internal/editor/` (API compat), `poc/ppk-pure-go/` (research), all 16 lucide icons, PRD implementation summaries
+  - **Acceptance:** All 12 criteria pass (3 critical + 4 high + 3 medium + 2 verification); `wails build` succeeds; no untracked artifacts after build
+  - **See:** `docs/planning/prd-015-project-cleanup-optimization.md` (full PRD with 4-phase plan)
 
 ### Added
 - [2026-08-15] **PRD-014: File Manager Toolbar Improvements** — COMPLETE ✅
@@ -100,7 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Browser/desktop requirements:** Modern Chromium/Firefox/WebKit (Wails webview); requires File API + CSS Grid support; desktop only
   - **Rollback strategy:** < 10 minutes — revert FileExplorer changes, delete UploadDialog files, re-test existing upload flow
   - **Documentation:** User guide at `docs/user-guide/file-manager.md`, component reference at `docs/components/upload-dialog.md`
-  - **See:** `docs/planning/prd-012-upload-dialog.md` (full PRD), `docs/planning/PRD-012-IMPLEMENTATION-SUMMARY.md` (implementation summary)
+  - **See:** `docs/planning/prd-012-upload-dialog.md` (full PRD), `docs/planning/prd-012-implementation-summary.md` (implementation summary)
 
 ### Added
 - [2026-08-14] **Fix-011: Store Private Key Content Securely (Not Path)** — ⚠️ APPROVED WITH NOTES
