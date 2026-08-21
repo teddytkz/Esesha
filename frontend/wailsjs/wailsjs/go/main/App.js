@@ -78,6 +78,10 @@ export function GetDecryptedPassword(arg1) {
   return window['go']['main']['App']['GetDecryptedPassword'](arg1);
 }
 
+export function GetHomeDirectory(arg1) {
+  return window['go']['main']['App']['GetHomeDirectory'](arg1);
+}
+
 export function ImportConnectionFromBackup(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
   return window['go']['main']['App']['ImportConnectionFromBackup'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 }

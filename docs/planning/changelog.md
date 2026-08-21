@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- [2026-08-21] **Feature: File Manager Default to User Home Directory** — COMPLETE ✅
+  - **Scope:** FileExplorer now opens user's home directory by default instead of root
+  - **Features:**
+    - When opening FileExplorer, automatically navigates to user's home directory (e.g., `/home/username`)
+    - Graceful fallback to root directory (`/`) if home directory cannot be retrieved
+    - Uses SFTP `Getwd()` to get the initial working directory from the SSH session
+  - **Implementation:**
+    - New backend method `GetHomeDirectory(sessionID string)` retrieves home directory via SFTP client
+    - Frontend `FileExplorer` calls `GetHomeDirectory` on mount and loads that path
+    - Fallback logic handles cases where home directory retrieval fails
+  - **Files Modified:** `app.go`, `frontend/src/components/FileExplorer.tsx`, `frontend/src/types/wails.d.ts`
+  - **Effort:** ~30 minutes
+  - **Risk:** LOW — backward compatible, non-breaking change with fallback
+  - **Benefits:** Better UX — users immediately see their files instead of system root
+
 - [2026-08-15] **Feature: Key File Management & Backup** — COMPLETE ✅
   - **Scope:** Automatic key file management and backup system
   - **Features:**

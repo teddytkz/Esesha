@@ -20,6 +20,7 @@ declare global {
           GetActiveSessions(): Promise<number>;
           GetConnection(id: number): Promise<models.Connection>;
           GetDecryptedPassword(connectionId: number): Promise<string>;
+          GetHomeDirectory(sessionId: string): Promise<string>;
           ListConnections(): Promise<models.Connection[]>;
           PingConnection(connectionId: number): Promise<number>;
           ListDirectory(sessionId: string, path: string): Promise<sftp.FileInfo[]>;

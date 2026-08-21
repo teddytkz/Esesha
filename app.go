@@ -503,7 +503,25 @@ func (a *App) DisconnectSSH(sessionID string) error {
 func (a *App) GetActiveSessions() int {
 	return a.sshManager.ActiveSessions()
 }
+// GetHomeDirectory returns the home directory for the current SSH session
+func (a *App) GetHomeDirectory(sessionID string) (string, error) {
+	sshClient, err := a.sshManager.GetSSHClient(sessionID)
+	if err != nil {
+		return "", err
+	}
 
+	sftpClient, err := a.sftpManager.GetOrCreateClient(sessionID, sshClient.GetSSHClient())
+	if err != nil {
+		return "", err
+	}
+
+	homeDir, err := sftpClient.GetClient().Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	return homeDir, nil
+}
 // ListDirectory lists files in remote directory via SFTP
 func (a *App) ListDirectory(sessionID, path string) ([]sftp.FileInfo, error) {
 	sshClient, err := a.sshManager.GetSSHClient(sessionID)

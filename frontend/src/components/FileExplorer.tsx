@@ -90,7 +90,23 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ sessionId }) => {
 
   useEffect(() => {
     if (sessionId) {
-      loadDirectory('/');
+      // Get home directory first, fallback to root if it fails
+      const initializeDirectory = async () => {
+        try {
+          if (window.go?.main?.App?.GetHomeDirectory) {
+            const homeDir = await window.go.main.App.GetHomeDirectory(sessionId);
+            if (homeDir) {
+              loadDirectory(homeDir);
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('[FileExplorer] Failed to get home directory, using root:', err);
+        }
+        // Fallback to root
+        loadDirectory('/');
+      };
+      initializeDirectory();
     }
 
     const handleProgress = (data: SFTPProgressEvent) => {
